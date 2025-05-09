@@ -100,8 +100,6 @@ notify.new({
 local LocalPlayer = Players.LocalPlayer
 local autoparryvar
 
-local interface = loadstring(game:HttpGet('https://raw.githubusercontent.com/flezzpe/EvadeAutoBHOP/main/libs/ef.java'))()
-
 local RunTime = workspace.Runtime
 local Alive = workspace.Alive
 local Dead = workspace.Dead
