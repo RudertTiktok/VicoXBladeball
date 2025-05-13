@@ -1,5 +1,6 @@
 local RobloxReplicatedStorage = game:GetService('RobloxReplicatedStorage')
 local RbxAnalyticsService = game:GetService('RbxAnalyticsService')
+local VirtualInputManager = game:GetService('VirtualInputManager')
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
 local UserInputService = game:GetService('UserInputService')
 local NetworkClient = game:GetService('NetworkClient')
@@ -398,147 +399,115 @@ function Player:get_closest_player_to_cursor()
     return closest_player
 end
 
+function parry()
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+    task.wait(0.1)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+end
+
 local platform = game:GetService("UserInputService").TouchEnabled and "Android" or "PC"
 
 print("Platform detected:", platform)
 
-function resolve_parry_Remote()
-    while true do
-        local found = false
-        -- Gunakan `game:GetDescendants()` untuk mencari di seluruh game
-        for _, object in pairs(game:GetDescendants()) do
-            if object:IsA("RemoteEvent") and object.Name:find("\n") then
-                AutoParry.ball.properties.parry_remote = object
-                found = true
-                print("RemoteEvent found on platform:", platform, " | Remote Name:", object.Name)
-                break
-            end
-        end
-
-        if found then
-            break
-        end
-        wait(0) -- Interval pencarian
-    end
-
-    if not AutoParry.ball.properties.parry_remote then
-        warn("RemoteEvent could not be found. Please check if the RemoteEvent exists!")
-    end
-end
-
-resolve_parry_Remote()
-
 function AutoParry.perform_grab_animation()
-	local animation = ReplicatedStorage.Shared.SwordAPI.Collection.Default:FindFirstChild('GrabParry')
-	local currently_equipped = Player.Entity.properties.sword
+    local animation = ReplicatedStorage.Shared.SwordAPI.Collection.Default:FindFirstChild('GrabParry')
+    local currently_equipped = Player.Entity.properties.sword
     
-	if not currently_equipped or currently_equipped == 'Titan Blade' then
+    if not currently_equipped or currently_equipped == 'Titan Blade' then
         return
     end
 
-	if not animation then
-		return
-	end
-
-	local sword_data = ReplicatedStorage.Shared.ReplicatedInstances.Swords.GetSword:Invoke(currently_equipped)
-
-	if not sword_data or not sword_data['AnimationType'] then
+    if not animation then
         return
     end
 
-	local character = LocalPlayer.Character
+    local sword_data = ReplicatedStorage.Shared.ReplicatedInstances.Swords.GetSword:Invoke(currently_equipped)
 
-	if not character or not character:FindFirstChild('Humanoid') then
-		return
-	end
+    if not sword_data or not sword_data['AnimationType'] then
+        return
+    end
 
-	for _, object in ReplicatedStorage.Shared.SwordAPI.Collection:GetChildren() do
+    local character = LocalPlayer.Character
+
+    if not character or not character:FindFirstChild('Humanoid') then
+        return
+    end
+
+    for _, object in ReplicatedStorage.Shared.SwordAPI.Collection:GetChildren() do
         if object.Name ~= sword_data['AnimationType'] then
             continue
         end
-		
-		if not (object:FindFirstChild('GrabParry') or object:FindFirstChild('Grab')) then
+        
+        if not (object:FindFirstChild('GrabParry') or object:FindFirstChild('Grab')) then
             continue
         end
 
-		local sword_animation_type = 'GrabParry'
+        local sword_animation_type = 'GrabParry'
 
-		if object:FindFirstChild('Grab') then
-			sword_animation_type = 'Grab'
-		end
+        if object:FindFirstChild('Grab') then
+            sword_animation_type = 'Grab'
+        end
 
-        animation = object[type]
+        animation = object[sword_animation_type]
     end
 
-	Player.properties.grab_animation = character.Humanoid:LoadAnimation(animation)
-	Player.properties.grab_animation:Play()
+    Player.properties.grab_animation = character.Humanoid:LoadAnimation(animation)
+    Player.properties.grab_animation:Play()
 end
 
 function AutoParry.perform_parry()
-	local ball_properties = AutoParry.ball.properties
-	
-	if ball_properties.cooldown and not ball_properties.auto_spam then
-		return
-	end
+    local ball_properties = AutoParry.ball.properties
+    
+    if ball_properties.cooldown and not ball_properties.auto_spam then
+        return
+    end
 
-	ball_properties.parries += 1
-	AutoParry.ball.properties.last_hit = tick()
+    ball_properties.parries += 1
+    AutoParry.ball.properties.last_hit = tick()
 
-	local camera = workspace.CurrentCamera
-	local camera_direction = camera.CFrame.Position
-	
-	local direction = camera.CFrame
-	local target_position = AutoParry.entity_properties.server_position
-	
+    local camera = workspace.CurrentCamera
+    local camera_direction = camera.CFrame.Position
+    
+    local direction = camera.CFrame
+    local target_position = AutoParry.entity_properties.server_position
+    
     if not ball_properties.auto_spam then
-		AutoParry.perform_grab_animation()
+        AutoParry.perform_grab_animation()
 
-		ball_properties.cooldown = true
-	
-		local current_curve = interface.flags['curve_method']
+        ball_properties.cooldown = true
+    
+        local current_curve = interface.flags['curve_method']
 
-		if current_curve == 'Linear' then
-			direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position)
-		end
+        if current_curve == 'Linear' then
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position)
+        end
 
-		if current_curve == 'Backwards' then
-			direction = CFrame.new(camera_direction, (camera_direction + (-camera.CFrame.LookVector * 10000)) + Vector3.new(0, 1000, 0))
-		end
-	
-		if current_curve == 'Random' then
-			direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, Vector3.new(math.random(-1000, 1000), math.random(-350, 1000), math.random(-1000, 1000)))
-		end
-	
-		if current_curve == 'Accelerated' then
-			direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position + Vector3.new(0, 150, 0))
-		end
-	else
-		direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
+        if current_curve == 'Backwards' then
+            direction = CFrame.new(camera_direction, (camera_direction + (-camera.CFrame.LookVector * 10000)) + Vector3.new(0, 1000, 0))
+        end
+    
+        if current_curve == 'Random' then
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, Vector3.new(math.random(-1000, 1000), math.random(-350, 1000), math.random(-1000, 1000)))
+        end
+    
+        if current_curve == 'Accelerated' then
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position + Vector3.new(0, 150, 0))
+        end
+    else
+        direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
 
-		ball_properties.parry_remote:FireServer(
-			0.5,
-			direction,
-			{ [AutoParry.target.aim.Name] = target_position },
-			{ target_position.X, target_position.Y },
-			false
-		)
-	
-		task.delay(0.25, function()
-			if ball_properties.parries > 0 then
-				ball_properties.parries -= 1
-			end
-		end)
+        parry()
+    
+        task.delay(0.25, function()
+            if ball_properties.parries > 0 then
+                ball_properties.parries -= 1
+            end
+        end)
 
-		return
-	end
+        return
+    end
 
-	ball_properties.parry_remote:FireServer(
-		0.5,
-		direction,
-		{ [AutoParry.target.aim.Name] = target_position },
-		{ target_position.X, target_position.Y },
-		false
-	)
+    parry()
 
     task.delay(0.25, function()
         if ball_properties.parries > 0 then
