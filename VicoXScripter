@@ -1813,7 +1813,7 @@ getKeyButton:TweenPosition(UDim2.new(0.55, 0, 0.65, 0), "Out", "Quad", 0.5, true
     
     -- When the Get Key button is clicked
     getKeyButton.MouseButton1Click:Connect(function()
-        ("So noob you cant play blade ball ahh skill issue") -- Copies Discord invite to the clipboard
+        setclipboard("skill issue you ngga") -- Copies Discord invite to the clipboard
         displayNotification("Key System", "Discord link has been successfully copied to your clipboard!", 3)
-        print("Paste into your keyboard see what the text")
+        print("Text copied to clipboard.")
     end)
