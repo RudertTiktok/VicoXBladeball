@@ -31,10 +31,10 @@ local function ScriptLoader()
     
     local FlurioreLib = fetchScript("https://pastebin.com/raw/2mBP9Q7e")
     local Startup = FlurioreLib:MakeNotify({
-        ["Title"] = "WaverHub⛅",
+        ["Title"] = "VicoX⛅",
         ["Description"] = "",
         ["Color"] = Color3.fromRGB(255, 0, 111),
-        ["Content"] = "Updated",
+        ["Content"] = "Updated...",
         ["Time"] = 1,
         ["Delay"] = 5
     })
@@ -130,7 +130,7 @@ local function ScriptLoader()
             position = Vector3.zero,
             is_moving = false,
             speed = 0,
-            ping = 0
+            ping = 1
         }
     }
     
@@ -1566,10 +1566,10 @@ AutoParry.get_parry_remote()
         game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.LeftControl, false, game)
     end)
     local Noti1fy = FlurioreLib:MakeNotify({
-        ["Title"] = "WaverHub⛅",
+        ["Title"] = "VicoX⛅",
         ["Description"] = "",
         ["Color"] = Color3.fromRGB(0, 0, 128),
-        ["Content"] = "Loaded Succesfully",
+        ["Content"] = "Loaded Succesfully!",
         ["Time"] = 1,
         ["Delay"] = 5
     })
@@ -1633,7 +1633,7 @@ AutoParry.get_parry_remote()
         end
     end)
     end
-    local validKeys = { "WaverHub_Key12648", "WaverHubKey_By_Josh" }
+    local validKeys = { "VicoX" }
     local keySubmitted = false
     
 --// Create UI Elements
@@ -1813,7 +1813,7 @@ getKeyButton:TweenPosition(UDim2.new(0.55, 0, 0.65, 0), "Out", "Quad", 0.5, true
     
     -- When the Get Key button is clicked
     getKeyButton.MouseButton1Click:Connect(function()
-        setclipboard("https://discord.com/invite/PvZX8BJKbS") -- Copies Discord invite to the clipboard
+        ("So noob you cant play blade ball ahh skill issue") -- Copies Discord invite to the clipboard
         displayNotification("Key System", "Discord link has been successfully copied to your clipboard!", 3)
-        print("Discord link copied to clipboard.")
+        print("Paste into your keyboard see what the text")
     end)
