@@ -1068,7 +1068,7 @@ task.delay(30, function()
         return
     end
 
-print("All Done Initializazion:", platform)
+print("All Done Initializazion(Disconneted):", platform)
 
 local NothingLibrary = loadstring(game:HttpGetAsync('https://raw.githubusercontent.com/3345-c-a-t-s-u-s/NOTHING/main/source.lua'))();
 
