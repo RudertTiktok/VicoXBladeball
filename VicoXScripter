@@ -379,71 +379,70 @@ function AutoParry.perform_grab_animation()
 	Player.properties.grab_animation:Play()
 end
 
+local lastParryNotificationTime = 0
+local lastSpamNotificationTime = 0
+local notificationCooldown = 5 -- Cooldown in seconds for notifications
+
+-- Modify the AutoParry.perform_parry() function
 function AutoParry.perform_parry()
-	local ball_properties = AutoParry.ball.properties
-	
-	if ball_properties.cooldown and not ball_properties.auto_spam then
-		return
-	end
+    local ball_properties = AutoParry.ball.properties
+    
+    if ball_properties.cooldown and not ball_properties.auto_spam then
+        return
+    end
 
-	ball_properties.parries += 1
-	AutoParry.ball.properties.last_hit = tick()
+    ball_properties.parries += 1
+    AutoParry.ball.properties.last_hit = tick()
 
-	local camera = workspace.CurrentCamera
-	local camera_direction = camera.CFrame.Position
-	
-	local direction = camera.CFrame
-	local target_position = AutoParry.entity_properties.server_position
-	
+    local camera = workspace.CurrentCamera
+    local camera_direction = camera.CFrame.Position
+    
+    local direction = camera.CFrame
+    local target_position = AutoParry.entity_properties.server_position
+    
     if not ball_properties.auto_spam then
-		AutoParry.perform_grab_animation()
+        AutoParry.perform_grab_animation()
 
-		ball_properties.cooldown = true
-	
-		local current_curve = interface.flags['curve_method']
+        ball_properties.cooldown = true
+    
+        local current_curve = interface.flags['curve_method']
 
-		if current_curve == 'Linear' then
-			direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position)
-		end
+        if current_curve == 'Linear' then
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position)
+        end
 
-		if current_curve == 'Backwards' then
-			direction = CFrame.new(camera_direction, (camera_direction + (-camera.CFrame.LookVector * 10000)) + Vector3.new(0, 1000, 0))
-		end
-	
-		if current_curve == 'Random' then
-			direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, Vector3.new(math.random(-1000, 1000), math.random(-350, 1000), math.random(-1000, 1000)))
-		end
-	
-		if current_curve == 'Accelerated' then
-			direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position + Vector3.new(0, 150, 0))
-		end
-	else
-		direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
+        if current_curve == 'Backwards' then
+            direction = CFrame.new(camera_direction, (camera_direction + (-camera.CFrame.LookVector * 10000)) + Vector3.new(0, 1000, 0))
+        end
+    
+        if current_curve == 'Random' then
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, Vector3.new(math.random(-1000, 1000), math.random(-350, 1000), math.random(-1000, 1000)))
+        end
+    
+        if current_curve == 'Accelerated' then
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position + Vector3.new(0, 150, 0))
+        end
+    else
+        direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
+    end
 
-		parry(
-			0,
-			direction,
-			{ [AutoParry.target.aim.Name] = target_position },
-			{ target_position.X, target_position.Y },
-			false
-		)
-	
-		task.delay(0.25, function()
-			if ball_properties.parries > 0 then
-				ball_properties.parries -= 1
-			end
-		end)
+    -- Simulate the parry action using VirtualUser:SendMouseButtonEvent
+    if LocalPlayer.Character and workspace.CurrentCamera then
+        VirtualUser:SendMouseButtonEvent(0, 0, 0, true, game, 0) -- Press left mouse button
+        task.wait(0.1) -- Short delay to simulate click duration
+        VirtualUser:SendMouseButtonEvent(0, 0, 0, false, game, 0) -- Release left mouse button
 
-		return
-	end
-
-	parry(
-		0.5,
-		direction,
-		{ [AutoParry.target.aim.Name] = target_position },
-		{ target_position.X, target_position.Y },
-		false
-	)
+        -- Show parry notification with cooldown
+        if tick() - lastParryNotificationTime >= notificationCooldown then
+            notify.new({
+                Title = "Parry",
+                Description = "Parry attempted!",
+                Duration = 1,
+                Icon = "rbxassetid://8997385628"
+            })
+            lastParryNotificationTime = tick()
+        end
+    end
 
     task.delay(0.25, function()
         if ball_properties.parries > 0 then
@@ -1055,6 +1054,16 @@ autoparryvar = RunService.PostSimulation:Connect(function()
             entity_distance = AutoParry.entity_properties.distance,
             last_position_distance = distance_to_last_position,
         })
+        -- Show spam detection notification with cooldown
+        if ball_properties.auto_spam and tick() - lastSpamNotificationTime >= notificationCooldown then
+            notify.new({
+                Title = "Spam Detected",
+                Description = "Auto-spam mode activated!",
+                Duration = 1,
+                Icon = "rbxassetid://8997385628"
+            })
+            lastSpamNotificationTime = tick()
+        end
     end
 
     if ball_properties.auto_spam then
@@ -1075,6 +1084,16 @@ autoparryvar = RunService.PostSimulation:Connect(function()
             entity_distance = AutoParry.entity_properties.distance,
             last_position_distance = distance_to_last_position,
         })
+        -- Show spam detection notification with cooldown
+        if ball_properties.auto_spam and tick() - lastSpamNotificationTime >= notificationCooldown then
+            notify.new({
+                Title = "Spam Detected",
+                Description = "Auto-spam mode activated!",
+                Duration = 1,
+                Icon = "rbxassetid://8997385628"
+            })
+            lastSpamNotificationTime = tick()
+        end
     end
 
     local pings = Stats.Network.ServerStatsItem["Data Ping"]:GetValue() / 10
