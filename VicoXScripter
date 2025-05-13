@@ -40,9 +40,8 @@ local function ScriptLoader()
     local LocalPlayer = game.Players.LocalPlayer
     if not game:IsLoaded() then game.Loaded:Wait() end
 
-    local RobloxReplicatedStorage = cloneref(game:GetService('RobloxReplicatedStorage'))
+    local ReplicatedStorage = cloneref(game:GetService('ReplicatedStorage')) -- Perbaikan nama service
     local RbxAnalyticsService = cloneref(game:GetService('RbxAnalyticsService'))
-    local ReplicatedStorage = cloneref(game:GetService('ReplicatedStorage'))
     local UserInputService = cloneref(game:GetService('UserInputService'))
     local NetworkClient = cloneref(game:GetService("NetworkClient"))
     local TweenService = cloneref(game:GetService('TweenService'))
@@ -69,13 +68,18 @@ local function ScriptLoader()
     }
 
     local assets = game:GetObjects('rbxassetid://98657300657778')[1]
-    assets.Parent = RobloxReplicatedStorage
+    assets.Parent = ReplicatedStorage -- Perbaikan nama service
     assets.Name = names_map['protected']
 
-    local effects_folder = assets.effects
-    local objects_folder = assets.objects
-    local sounds_folder = assets.sounds
-    local gui_folder = assets.gui
+    -- Pengecekan struktur assets
+    local effects_folder = assets:FindFirstChild("effects") or Instance.new("Folder", assets)
+    effects_folder.Name = "effects"
+    local objects_folder = assets:FindFirstChild("objects") or Instance.new("Folder", assets)
+    objects_folder.Name = "objects"
+    local sounds_folder = assets:FindFirstChild("sounds") or Instance.new("Folder", assets)
+    sounds_folder.Name = "sounds"
+    local gui_folder = assets:FindFirstChild("gui") or Instance.new("Folder", assets)
+    gui_folder.Name = "gui"
 
     local RunTime = workspace.Runtime
     local Alive = workspace.Alive
@@ -803,8 +807,8 @@ local function ScriptLoader()
     Fluent = fetchScript("https://pastebin.com/raw/ijLKzE19")
     if not Fluent then return end
     Window = Fluent:CreateWindow({
-        Title = "VicoX⛅",
-        SubTitle = "Made By Rudert, Refix",
+        Title = "WaverHub⛅",
+        SubTitle = "Made By Josh and helped by CBB/REN",
         TabWidth = 120,
         Size = UDim2.fromOffset(490, 320),
         Acrylic = false,
@@ -870,17 +874,17 @@ local function ScriptLoader()
             Callback = function() optimizer() end
         })
         Tabs.Credits:AddButton({
-            Title = "Rudert",
+            Title = "Josh",
             Description = "Main Owner",
             Callback = function() print("Josh") end
         })
         Tabs.Credits:AddButton({
-            Title = "Rudert",
+            Title = "CBB",
             Description = "Assistant Developer",
             Callback = function() print("CBB") end
         })
         Tabs.Credits:AddButton({
-            Title = "I Love you🙏😜",
+            Title = "I Love Femboys",
             Description = "Source, main dev",
             Callback = function() print("I Love Yo Mama") end
         })
@@ -891,7 +895,7 @@ local function ScriptLoader()
         VirtualUser:ClickButton2(Vector2.new(0, 0))
     end)
 
-    local custom_win_audio = Instance.new('Sound', sounds_folder)
+    local custom_win_audio = Instance.new('Sound', sounds_folder or ReplicatedStorage) -- Fallback ke ReplicatedStorage jika sounds_folder nil
 
     local ScreenGui2 = Instance.new("ScreenGui")
     ScreenGui2.Parent = game.CoreGui
@@ -931,7 +935,7 @@ local function ScriptLoader()
         if player_ping > 100 and player_ping < 200 then
             FlurioreLib:MakeNotify({
                 ["Title"] = "[Warning]:",
-                ["Description"] = "Connection Problem! DETECT",
+                ["Description"] = "Connection Problem",
                 ["Color"] = Color3.fromRGB(255, 255, 0),
                 ["Content"] = "Low connection speed, delays may occur",
                 ["Time"] = 1,
@@ -940,7 +944,7 @@ local function ScriptLoader()
         elseif player_ping >= 200 then
             FlurioreLib:MakeNotify({
                 ["Title"] = "[Critical]:",
-                ["Description"] = "Connection Problem! DETECT",
+                ["Description"] = "Connection Problem",
                 ["Color"] = Color3.fromRGB(255, 0, 0),
                 ["Content"] = "Critically slow connection speed, delays ensured",
                 ["Time"] = 1,
@@ -954,7 +958,7 @@ local function ScriptLoader()
             local currentAutoSpamTime = tick()
             if currentAutoSpamTime - lastAutoSpamNotificationTime >= notificationCooldown then
                 FlurioreLib:MakeNotify({
-                    ["Title"] = "[Information]:",
+                    ["Title"] pove = "[Information]:",
                     ["Description"] = "Auto Parry Behavior",
                     ["Color"] = Color3.fromRGB(255, 0, 0),
                     ["Content"] = "Auto Spam Activated",
@@ -1115,4 +1119,5 @@ local function ScriptLoader()
     end)
 end
 
+-- Mulai skrip
 if not game.CoreGui:FindFirstChild("KeySystemUI") then ScriptLoader() end
