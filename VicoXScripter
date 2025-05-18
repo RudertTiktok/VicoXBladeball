@@ -398,7 +398,7 @@ function AutoParry.perform_parry()
 	if Settings.HitEffectEnabled then
         AutoParry.play_hit_effect()
     end
-    if Settings.HitSound AnginEnabled then
+    if Settings.HitSoundEnabled then
         hit_Sound:Play()
     end
 		task.delay(0.25, function()
