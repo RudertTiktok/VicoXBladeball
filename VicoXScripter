@@ -428,7 +428,7 @@ function AutoParry.perform_parry()
         end
 
         -- Simulate mouse click
-        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
 
         -- Hit effects and sound
         if Settings.HitEffectEnabled then
@@ -448,7 +448,7 @@ function AutoParry.perform_parry()
         direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
 
         -- Simulate mouse click
-        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
 
         -- Hit effects and sound
         if Settings.HitEffectEnabled then
