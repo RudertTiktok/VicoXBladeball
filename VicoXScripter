@@ -1,21 +1,3 @@
-for i,v in pairs(getconnections(game.Players.LocalPlayer.Idled)) do
-    v:Disable()
-end
-
-local req = (syn and syn.request) or (http and http.request) or http_request
-
-function GetHttp(URL)
-	local Data = nil
-	local Test = req({
-        Url = URL,
-        Method = 'GET',
-	})
-	for i,v in pairs(Test) do
-		Data = v
-	end
-	return Data
-end
-
 -- Services
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -34,6 +16,10 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
+-- Initialize NothingLibrary
+local NothingLibrary = loadstring(game:HttpGetAsync('https://raw.githubusercontent.com/3345-c-a-t-s-u-s/NOTHING/main/source.lua'))()
+local notify = NothingLibrary.Notification()
+
 -- Loading Screen
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "LoadingScreen"
@@ -51,7 +37,7 @@ uiGradient.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0), Color3.fromRGB(50,
 uiGradient.Rotation = 45
 
 local textLabel = Instance.new("TextLabel")
-textLabel.Text = "Credit: Rudert, Flezzpe"
+textLabel.Text = "Credit: Rudert, Flezzpe, and VicoX"
 textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 textLabel.TextSize = 50
 textLabel.TextStrokeTransparency = 0.6
@@ -96,12 +82,6 @@ fadeInTween.Completed:Connect(function()
     end)
 end)
 
-wait(3) 
-
--- Initialize NothingLibrary
-local NothingLibrary = loadstring(game:HttpGetAsync('https://raw.githubusercontent.com/3345-c-a-t-s-u-s/NOTHING/main/source.lua'))()
-local notify = NothingLibrary.Notification()
-
 -- Local variables
 local LocalPlayer = Players.LocalPlayer
 local RunTime = Workspace:FindFirstChild("Runtime") or Workspace
@@ -111,9 +91,7 @@ local Camera = Workspace.CurrentCamera
 local Cooldown = tick()
 local SoundCooldown = tick() -- Cooldown untuk suara
 local is_respawned = false
-local lastSpamNotificationTime = 0
 local lastAntiIdleTime = tick()
-local notificationCooldown = 5
 local parryCount = 0
 local closest_Entity = nil
 local Settings = {
@@ -301,7 +279,7 @@ end
 function Player.get_closest_player_to_cursor()
     local closest_player = nil
     local minimal_dot_product = -math.huge
-    local pointer  = get_pointer()
+    local pointer = get_pointer()
     for _, player in Alive:GetChildren() do
         if player == LocalPlayer.Character or player.Parent ~= Alive or not player:FindFirstChild("PrimaryPart") then
             continue
@@ -402,7 +380,7 @@ function AutoParry.perform_parry()
     notify.new({
         Title = "Parry Success",
         Description = "Parry Count: " .. parryCount,
-        Duration = 0.5,
+        Duration = 0.5, -- Diubah menjadi 0.5 detik
         Icon = "rbxassetid://8997385628"
     })
 
@@ -445,7 +423,7 @@ function AutoParry.perform_parry()
     local viewportSize = Camera.ViewportSize
     local centerX, centerY = viewportSize.X / 2, viewportSize.Y / 2
     VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-    task.wait(0.005)
+    task.wait(0.01)
     VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
 
     if Settings.HitEffectEnabled then
@@ -804,7 +782,7 @@ task.defer(function()
                 Intensity = 1
             }):Play()
         end
-    end)
+    end
 end)
 
 -- Night Mode
@@ -1185,14 +1163,14 @@ end
 -- GUI Setup
 local Windows = NothingLibrary.new({
     Title = "VicoX - Blade Ball",
-    Description = "UDPATE - BETA",
+    Description = "Ultimate Auto-Parry, Auto-Spam, and Effects",
     Keybind = Enum.KeyCode.LeftControl,
     Logo = "rbxassetid://18898582662"
 })
 
 local TabFrame = Windows:NewTab({
     Title = "Main",
-    Description = "Auto And Features.",
+    Description = "Auto-Parry and Auto-Spam Controls",
     Icon = "rbxassetid://7733960981"
 })
 
@@ -1450,7 +1428,7 @@ MiscSection:NewDropdown({
 applyAntiLag("Disable")
 notify.new({
     Title = "VicoX Loaded",
-    Description = "...Update BETA...",
+    Description = "Ultimate Auto-Parry, Auto-Spam, and Enhanced Features ready!",
     Duration = 5,
     Icon = "rbxassetid://8997385628"
 })
