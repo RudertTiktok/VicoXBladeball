@@ -124,7 +124,7 @@ nurysium_Data.Name = 'nurysium_temp'
 
 local hit_Sound = Instance.new('Sound', nurysium_Data)
 hit_Sound.SoundId = 'rbxassetid://936447863' -- Default to DC-15X
-hit_Sound.Volume = 6
+hit_Sound.Volume = 3
 
 -- Connections management
 local ConnectionsManager = {}
@@ -366,29 +366,35 @@ end
 function AutoParry.perform_parry()
     local ball_properties = AutoParry.ball.properties
     
+    -- Early checks for cooldown, character, and camera
     if ball_properties.cooldown and not ball_properties.auto_spam then
         return
     end
 
-    if tick() - Cooldown < 0.1 or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or not Camera then
+    if tick() - Cooldown < 0.1 or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("PrimaryPart") or not workspace.CurrentCamera then
         return
     end
 
+    -- Increment parry count and update last hit
     ball_properties.parries += 1
     ball_properties.last_hit = tick()
     parryCount += 1
+
+    -- Notification
     notify.new({
         Title = "Parrying..!",
         Description = "Parry Count: " .. parryCount,
-        Duration = 0.1, -- Diubah menjadi 0.5 detik
+        Duration = 0.1,
         Icon = "rbxassetid://8997385628"
     })
 
-    local camera = Camera
+    -- Camera and direction setup
+    local camera = workspace.CurrentCamera
     local camera_direction = camera.CFrame.Position
     local direction = camera.CFrame
     local target_position = AutoParry.entity_properties.server_position
-    
+
+    -- Targeting logic
     local is_mobile = UserInputService.TouchEnabled
     local aim_target = Settings.CursorTargeting and not is_mobile and Player.get_closest_player_to_cursor() or Player.get_aim_entity()
     AutoParry.target.aim = aim_target or AutoParry.target.aim
@@ -401,6 +407,10 @@ function AutoParry.perform_parry()
         end
     end
 
+    -- Viewport setup for input simulation
+    local viewportSize = camera.ViewportSize
+    local centerX, centerY = viewportSize.X / 2, viewportSize.Y / 2
+
     if not ball_properties.auto_spam then
         AutoParry.perform_grab_animation()
         ball_properties.cooldown = true
@@ -408,34 +418,56 @@ function AutoParry.perform_parry()
         local current_curve = Settings.CurveMethod
 
         if current_curve == 'Linear' then
-            direction = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position, target_position)
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position)
         elseif current_curve == 'Backwards' then
             direction = CFrame.new(camera_direction, (camera_direction + (-camera.CFrame.LookVector * 10000)) + Vector3.new(0, 1000, 0))
         elseif current_curve == 'Random' then
-            direction = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position, target_position + Vector3.new(math.random(-1000, 1000), math.random(-350, 1000), math.random(-1000, 1000)))
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position + Vector3.new(math.random(-1000, 1000), math.random(-350, 1000), math.random(-1000, 1000)))
         elseif current_curve == 'Accelerated' then
-            direction = CFrame.new(LocalPlayer.Character.HumanoidRootPart.Position, target_position + Vector3.new(0, 150, 0))
+            direction = CFrame.new(LocalPlayer.Character.PrimaryPart.Position, target_position + Vector3.new(0, 150, 0))
         end
+
+        -- Simulate mouse click
+        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+
+        -- Hit effects and sound
+        if Settings.HitEffectEnabled then
+            AutoParry.play_hit_effect()
+        end
+        if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
+            hit_Sound:Play()
+            SoundCooldown = tick()
+        end
+
+        task.delay(0.25, function()
+            if ball_properties.parries > 0 then
+                ball_properties.parries -= 1
+            end
+        end)
     else
         direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
-    end
 
-    local viewportSize = Camera.ViewportSize
-    local centerX, centerY = viewportSize.X / 2, viewportSize.Y / 2
-    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-    if Settings.HitEffectEnabled then
-        AutoParry.play_hit_effect()
-    end
-    if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
-        hit_Sound:Play()
-        SoundCooldown = tick()
-    end
+        -- Simulate mouse click
+        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
 
-    task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
-        if ball_properties.parries > 0 then
-            ball_properties.parries -= 1
+        -- Hit effects and sound
+        if Settings.HitEffectEnabled then
+            AutoParry.play_hit_effect()
         end
-    end)
+        if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
+            hit_Sound:Play()
+            SoundCooldown = tick()
+        end
+
+        task.delay(0.25, function()
+            if ball_properties.parries > 0 then
+                ball_properties.parries -= 1
+            end
+        end)
+
+        Cooldown = tick()
+        return
+    end
 
     Cooldown = tick()
 end
