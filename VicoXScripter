@@ -365,20 +365,24 @@ end
 
 function AutoParry.perform_parry()
 	local ball_properties = AutoParry.ball.properties
-	
-	if ball_properties.cooldown and not ball_properties.auto_spam then
-		return
-	end
+    
+    if ball_properties.cooldown and not ball_properties.auto_spam then
+        return
+    end
 
-	ball_properties.parries += 1
-	AutoParry.ball.properties.last_hit = tick()
+    if tick() - Cooldown < 0.1 or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or not Camera then
+        return
+    end
 
-	local camera = workspace.CurrentCamera
-	local camera_direction = camera.CFrame.Position
-	
-	local direction = camera.CFrame
-	local target_position = AutoParry.entity_properties.server_position
-	
+    ball_properties.parries += 1
+    ball_properties.last_hit = tick()
+    parryCount += 1
+
+    local camera = Camera
+    local camera_direction = camera.CFrame.Position
+    local direction = camera.CFrame
+    local target_position = AutoParry.entity_properties.server_position
+    	
     if not ball_properties.auto_spam then
         AutoParry.perform_grab_animation()
         local current_curve = Settings.CurveMethod
@@ -401,7 +405,7 @@ function AutoParry.perform_parry()
     if Settings.HitSoundEnabled then
         hit_Sound:Play()
     end
-		task.delay(0.15 or 0.25, function()
+		task.delay(0.25, function()
         if ball_properties.parries > 0 then
             ball_properties.parries -= 1
 			end
@@ -417,7 +421,7 @@ function AutoParry.perform_parry()
     if Settings.HitSoundEnabled then
         hit_Sound:Play()
     end
-    task.delay(0.15 or 0.25, function()
+    task.delay(0.25, function()
         if ball_properties.parries > 0 then
             ball_properties.parries -= 1
         end
