@@ -793,7 +793,7 @@ task.defer(function()
         else
             TweenService:Create(Lighting, TweenInfo.new(3), {ClockTime = 13.5}):Play()
         end
-    end)
+    end
 end)
 
 -- Spectate Ball
@@ -804,7 +804,7 @@ task.defer(function()
             if not ball then return end
             Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, ball.Position), 0.15)
         end
-    end)
+    end
 end)
 
 -- Kill Effect
@@ -816,7 +816,7 @@ task.defer(function()
         if Settings.KillEffectEnabled and child:FindFirstChild("HumanoidRootPart") then
             AutoParry.play_kill_effect(child.HumanoidRootPart)
         end
-    end)
+    end
 end)
 
 -- Event Handlers
