@@ -378,7 +378,7 @@ function AutoParry.perform_parry()
     ball_properties.last_hit = tick()
     parryCount += 1
     notify.new({
-        Title = "Parrying..!",
+        Title = "Parry Success",
         Description = "Parry Count: " .. parryCount,
         Duration = 0.5,
         Icon = "rbxassetid://8997385628"
@@ -392,6 +392,8 @@ function AutoParry.perform_parry()
     local is_mobile = UserInputService.TouchEnabled
     local aim_target = Settings.CursorTargeting and not is_mobile and Player.get_closest_player_to_cursor() or Player.get_aim_entity()
     AutoParry.target.aim = aim_target or AutoParry.target.aim
+    local screenX, screenY = nil, nil
+
     if AutoParry.target.aim and AutoParry.target.aim:FindFirstChild("PrimaryPart") then
         target_position = AutoParry.target.aim.PrimaryPart.Position
         if AutoParry.ball.ball_entity then
@@ -399,6 +401,19 @@ function AutoParry.perform_parry()
             local time_to_reach = ball_properties.distance / ball_properties.speed
             target_position = linear_predict(ball_properties.position, ball_properties.position + ball_vel * time_to_reach, time_to_reach)
         end
+        -- Konversi posisi 3D target ke koordinat 2D layar
+        local screenPos, onScreen = Camera:WorldToScreenPoint(target_position)
+        if onScreen then
+            screenX, screenY = screenPos.X, screenPos.Y
+        else
+            -- Jika target tidak di layar, fallback ke tengah layar
+            local viewportSize = Camera.ViewportSize
+            screenX, screenY = viewportSize.X / 2, viewportSize.Y / 2
+        end
+    else
+        -- Fallback ke tengah layar jika tidak ada target
+        local viewportSize = Camera.ViewportSize
+        screenX, screenY = viewportSize.X / 2, viewportSize.Y / 2
     end
 
     if not ball_properties.auto_spam then
@@ -420,9 +435,14 @@ function AutoParry.perform_parry()
         direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
     end
 
-    local viewportSize = Camera.ViewportSize
-    local centerX, centerY = viewportSize.X / 2, viewportSize.Y / 2
-    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+    -- Gerakkan kursor ke posisi target
+    VirtualInputManager:SendMouseMoveEvent(screenX, screenY, game)
+    task.wait(0.01) -- Tunggu sebentar agar kursor berpindah
+    -- Lakukan klik untuk parry
+    VirtualInputManager:SendMouseButtonEvent(screenX, screenY, 0, true, game, 0)
+    task.wait(0.01)
+    VirtualInputManager:SendMouseButtonEvent(screenX, screenY, 0, false, game, 0)
+
     if Settings.HitEffectEnabled then
         AutoParry.play_hit_effect()
     end
@@ -431,7 +451,7 @@ function AutoParry.perform_parry()
         SoundCooldown = tick()
     end
 
-    task.delay(0.20 or 0.25, function()
+    task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
         if ball_properties.parries > 0 then
             ball_properties.parries -= 1
         end
@@ -439,7 +459,6 @@ function AutoParry.perform_parry()
 
     Cooldown = tick()
 end
-
 
 function AutoParry.play_hit_effect()
     if not Settings.HitEffectEnabled then return end
@@ -1006,8 +1025,8 @@ ConnectionsManager["auto_parry"] = RunService.PostSimulation:Connect(function()
     local spam_accuracity = ball_properties.maximum_speed / 7 + ping_threshold
     local parry_accuracity = ball_properties.maximum_speed / 11.5 + ping_threshold
 
-    ball_properties.spam_range = ping_threshold + ball_properties.speed / 2
-    ball_properties.parry_range = ping_threshold + ball_properties.speed / math.pi * 1
+    ball_properties.spam_range = ping_threshold + ball_properties.speed / 2.2
+    ball_properties.parry_range = ping_threshold + ball_properties.speed / math.pi
 
     if Player.Entity.properties.sword == 'Titan Blade' then
         ball_properties.parry_range += 11
