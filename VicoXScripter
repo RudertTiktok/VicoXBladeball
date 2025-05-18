@@ -185,7 +185,7 @@ local AutoParry = {
             auto_spam = false,
             cooldown = false,
             respawn_time = 0,
-            parry_range = 0,
+            parry_range = 5,
             spam_range = 0,
             maximum_speed = 0,
             old_speed = 0,
@@ -220,7 +220,7 @@ local AutoParry = {
 local Player = {
     Entity = {
         properties = {
-            ping = 0,
+            ping = 1,
             sword = "",
             server_position = Vector3.zero,
             velocity = Vector3.zero,
@@ -378,9 +378,9 @@ function AutoParry.perform_parry()
     ball_properties.last_hit = tick()
     parryCount += 1
     notify.new({
-        Title = "Parry Success",
+        Title = "Parrying..!",
         Description = "Parry Count: " .. parryCount,
-        Duration = 0.5, -- Diubah menjadi 0.5 detik
+        Duration = 0.1, -- Diubah menjadi 0.5 detik
         Icon = "rbxassetid://8997385628"
     })
 
@@ -423,9 +423,6 @@ function AutoParry.perform_parry()
     local viewportSize = Camera.ViewportSize
     local centerX, centerY = viewportSize.X / 2, viewportSize.Y / 2
     VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-    task.wait(0.01)
-    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
-
     if Settings.HitEffectEnabled then
         AutoParry.play_hit_effect()
     end
@@ -1392,6 +1389,17 @@ VisualSection:NewSlider({
     end
 })
 
+MiscSection:NewDropdown({
+    Title = "Anti Lag",
+    Data = {"Disable", "Anti Lag Basic", "Anti Lag Pro", "Anti Lag Extreme"},
+    Default = "Disable",
+    Callback = function(value)
+        Settings.AntiLagMode = value
+        applyAntiLag(value)
+        print("Anti Lag Mode:", value)
+    end
+})
+
 MiscSection:NewToggle({
     Title = "Anti-Idle",
     Default = false,
@@ -1410,17 +1418,6 @@ MiscSection:NewToggle({
         if state then
             TeleportService:Teleport(game.PlaceId, LocalPlayer)
         end
-    end
-})
-
-MiscSection:NewDropdown({
-    Title = "Anti Lag",
-    Data = {"Disable", "Anti Lag Basic", "Anti Lag Pro", "Anti Lag Extreme"},
-    Default = "Disable",
-    Callback = function(value)
-        Settings.AntiLagMode = value
-        applyAntiLag(value)
-        print("Anti Lag Mode:", value)
     end
 })
 
