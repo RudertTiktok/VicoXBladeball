@@ -394,11 +394,11 @@ function AutoParry.perform_parry()
     else
         direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
     end
-		VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-	        if Settings.HitEffectEnabled then
+	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+	if Settings.HitEffectEnabled then
         AutoParry.play_hit_effect()
     end
-    if Settings.HitSoundEnabled then
+    if Settings.HitSound AnginEnabled then
         hit_Sound:Play()
     end
 		task.delay(0.25, function()
@@ -408,20 +408,7 @@ function AutoParry.perform_parry()
 		end)
 
 		return
-	end
-
-	VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
-	if Settings.HitEffectEnabled then
-        AutoParry.play_hit_effect()
-    end
-    if Settings.HitSoundEnabled then
-        hit_Sound:Play()
-    end
-    task.delay(0.15, function()
-        if ball_properties and ball_properties.parries > 0 then
-            ball_properties.parries -= 1
-        end
-    end)
+end
 
 function AutoParry.play_hit_effect()
     if not Settings.HitEffectEnabled then return end
@@ -993,7 +980,7 @@ ConnectionsManager["auto_parry"] = RunService.PostSimulation:Connect(function()
     local ball_properties = AutoParry.ball.properties
     ball_properties.is_curved = AutoParry.is_curved()
     
-    local ping_threshold = math.clamp(Player.Entity.properties.ping / 10, 10, 16)
+    local ping_threshold = math.clamp(Player.Entity.properties.ping / 10, 10, 20)
 	local spam_accuracity = ball_properties.maximum_speed / 7 + ping_threshold
 	local parry_accuracity = ball_properties.maximum_speed / 11.5 + ping_threshold
 
