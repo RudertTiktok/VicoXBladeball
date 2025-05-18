@@ -377,12 +377,6 @@ function AutoParry.perform_parry()
     ball_properties.parries += 1
     ball_properties.last_hit = tick()
     parryCount += 1
-    notify.new({
-        Title = "Parry Success",
-        Description = "Parry Count: " .. parryCount,
-        Duration = 0.5, -- Diubah menjadi 0.5 detik
-        Icon = "rbxassetid://8997385628"
-    })
 
     local camera = Camera
     local camera_direction = camera.CFrame.Position
@@ -434,7 +428,7 @@ function AutoParry.perform_parry()
         SoundCooldown = tick()
     end
 
-    task.delay(ball_properties.auto_spam and 0.25, function()
+    task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
         if ball_properties.parries > 0 then
             ball_properties.parries -= 1
         end
