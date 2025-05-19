@@ -363,6 +363,13 @@ function AutoParry.perform_grab_animation()
     Player.Entity.properties.grab_animation:Play()
 end
 
+local SpamDelay = 0.01
+
+function AP(spamDelay) -- Use lowercase parameter to avoid confusion
+   VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, spamDelay)
+   VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, spamDelay)
+end
+
 function AutoParry.perform_parry()
     local ball_properties = AutoParry.ball.properties
     
@@ -414,11 +421,7 @@ function AutoParry.perform_parry()
         direction = CFrame.new(camera_direction, target_position + Vector3.new(0, 60, 0))
     end
 
-    local viewportSize = Camera.ViewportSize
-    local centerX, centerY = viewportSize.X / 2, viewportSize.Y / 2
-    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-    task.wait()
-    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
+    AP(SpamDelay)
 
     if Settings.HitEffectEnabled then
         AutoParry.play_hit_effect()
