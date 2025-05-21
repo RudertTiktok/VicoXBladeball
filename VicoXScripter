@@ -94,6 +94,8 @@ local is_respawned = false
 local lastAntiIdleTime = tick()
 local parryCount = 0
 local closest_Entity = nil
+local Parry_Key = nil
+local Remotes = {}
 local Settings = {
     AutoParryEnabled = false,
     AutoSpamEnabled = false,
@@ -117,9 +119,7 @@ local Settings = {
     HitEffectParticles = 3,
     HitSound = "DC-15X"
 }
-local Parry_Key = nil
-local Remotes = {}
-
+setfpscap(60);
 task.spawn(function()
     for _, Value in getgc() do
         if type(Value) == 'function' and islclosure(Value) then
@@ -139,6 +139,8 @@ task.spawn(function()
         end
     end
 end)
+
+local Key = Parry_Key;
 
 -- Data Folder
 local nurysium_Data = Instance.new('Folder', game:GetService('CoreGui'))
@@ -551,9 +553,6 @@ end
 
         Cooldown = tick()
     end
-
-    return parryData
-end
 
 function AutoParry.play_hit_effect()
     if not Settings.HitEffectEnabled then return end
