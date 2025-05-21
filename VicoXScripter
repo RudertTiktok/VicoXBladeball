@@ -94,8 +94,6 @@ local is_respawned = false
 local lastAntiIdleTime = tick()
 local parryCount = 0
 local closest_Entity = nil
-local Parry_Key = nil
-local Remotes = {}
 local Settings = {
     AutoParryEnabled = false,
     AutoSpamEnabled = false,
@@ -119,27 +117,41 @@ local Settings = {
     HitEffectParticles = 3,
     HitSound = "DC-15X"
 }
+
+local Parry_Key = nil
+local Remotes = {}
+
 task.spawn(function()
-    for _, Value in getgc() do
+    for _, Value in pairs(getgc()) do
         if type(Value) == 'function' and islclosure(Value) then
-            local Protos = debug.getprotos(Value)
-            local Upvalues = debug.getupvalues(Value)
-            local Constants = debug.getconstants(Value)
+            local Protos = debug.getprotos(Value) or {}
+            local Upvalues = debug.getupvalues(Value) or {}
+            local Constants = debug.getconstants(Value) or {}
+            
             if #Protos == 4 and #Upvalues == 24 and #Constants >= 102 then
                 local c62 = Constants[62]
                 local c64 = Constants[64]
                 local c65 = Constants[65]
-                Remotes[debug.getupvalue(Value, 16)] = c62
-                Parry_Key = debug.getupvalue(Value, 17)
-                Remotes[debug.getupvalue(Value, 18)] = c64
-                Remotes[debug.getupvalue(Value, 19)] = c65
-                break
+                
+                if c62 and c64 and c65 then
+                    Remotes[debug.getupvalue(Value, 16)] = c62
+                    Parry_Key = debug.getupvalue(Value, 17)
+                    Remotes[debug.getupvalue(Value, 18)] = c64
+                    Remotes[debug.getupvalue(Value, 19)] = c65
+                    print("Found target function. Parry_Key:", Parry_Key)
+                    break
+                else
+                    print("Constants missing at required indices")
+                end
             end
         end
     end
+    if not Parry_Key then
+        print("No matching function found")
+    end
 end)
 
-local Key = Parry_Key;
+local Key = Parry_Key
 
 -- Data Folder
 local nurysium_Data = Instance.new('Folder', game:GetService('CoreGui'))
@@ -193,7 +205,7 @@ Highlight1.FillTransparency = 0
 Highlight1.OutlineColor = Color3.new(1, 1, 1)
 
 -- AutoParry structure
-local AutoParry = AutoParry or {
+local AutoParry = {
     ball = {
         ball_entity = nil,
         client_ball_entity = nil,
@@ -475,7 +487,7 @@ if not ball_properties.auto_spam then
         end
     end
 
-    local Parry_Data = AutoParry.Parry_Data()
+    local Parry_Data = AutoParry.Parry_Data and AutoParry.Parry_Data() or {0, CFrame.new(), {}, {0, 0}}
     for Remote, Args in pairs(Remotes) do
         local Hash
         if foundFake then
