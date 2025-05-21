@@ -504,7 +504,7 @@ Auto_Parry.Parry = function()
         SoundCooldown = tick()
     end
     ball_properties.parries += 1
-    task.delay(0.5, function()
+    task.delay(0.25, function()
         if ball_properties.parries > 0 then
             ball_properties.parries -= 1
         end
