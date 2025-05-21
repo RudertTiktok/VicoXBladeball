@@ -139,12 +139,6 @@ task.spawn(function()
             end
         end
     end
-    for _, Args in pairs(Remotes) do
-        if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
-            foundFake = true
-            break
-        end
-    end
 end)
 
 -- Data Folder
@@ -425,98 +419,134 @@ function AutoParry.perform_grab_animation()
     Player.Entity.properties.grab_animation:Play()
 end
 
-function Auto_Parry.Parry_Data()
-        local ball_properties = AutoParry.ball.properties
-	
-	if ball_properties.cooldown and not ball_properties.auto_spam then
-		return
-	end
-
-	ball_properties.parries += 1
-	AutoParry.ball.properties.last_hit = tick()
-
-    local Camera = workspace.CurrentCamera
-    if not Camera then return {0, CFrame.new(), {}, {0, 0}} end
-
-    local ViewportSize = Camera.ViewportSize
-    local MouseLocation = (Last_Input == Enum.UserInputType.MouseButton1 or 
-                          Last_Input == Enum.UserInputType.MouseButton2 or 
-                          Last_Input == Enum.UserInputType.Keyboard)
-        and UserInputService:GetMouseLocation()
-        or Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
-
-    local Used = {MouseLocation.X, MouseLocation.Y}
-
-    local Alive = workspace.Alive:GetChildren()
-    local Events = table.create(#Alive)
-    for _, v in ipairs(Alive) do
-        if v.PrimaryPart then -- Check if PrimaryPart exists
-            Events[tostring(v)] = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
-        end
+function AutoParry.perform_parry()
+    local ball_properties = AutoParry.ball.properties
+    local camera = workspace.CurrentCamera
+    
+    -- Validasi awal
+    if not camera or ball_properties.cooldown and not ball_properties.auto_spam then
+        return {0, CFrame.new(), {}, {0, 0}}
+    end
+    
+    if tick() - Cooldown < 0.1 or 
+       not LocalPlayer.Character or 
+       not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return {0, CFrame.new(), {}, {0, 0}}
     end
 
-    local pos = Camera.CFrame.Position
-    local look = Camera.CFrame.LookVector
-    local up = Camera.CFrame.UpVector
-    local right = Camera.CFrame.RightVector
+    -- Update properties
+    ball_properties.parries = (ball_properties.parries or 0) + 1
+    ball_properties.last_hit = tick()
+    parryCount = (parryCount or 0) + 1
 
-    local current_curve = Settings.CurveMethod
+    -- Mendapatkan posisi kursor
+    local viewportSize = camera.ViewportSize
+    local mouseLocation = UserInputService:GetMouseLocation()
+    local usedPosition = {mouseLocation.X, mouseLocation.Y}
+    
+    if UserInputService.TouchEnabled or 
+       Last_Input == Enum.UserInputType.Touch or 
+       Last_Input == nil then
+        usedPosition = {viewportSize.X / 2, viewportSize.Y / 2}
+    end
+
+    -- Mendapatkan data kamera
+    local pos = camera.CFrame.Position
+    local look = camera.CFrame.LookVector
+    local up = camera.CFrame.UpVector
+    local right = camera.CFrame.RightVector
+
+    -- Menentukan arah berdasarkan curve method
     local direction
+    local current_curve = Settings.CurveMethod or "Accelerated"
+    
+    local curveDirections = {
+        Up = pos + up * 1000,
+        Right = pos + right * 1000,
+        Left = pos - right * 1000,
+        Backwards = pos - look * 1000,
+        Random = Vector3.new(
+            math.random(-3000, 3000), 
+            math.random(-3000, 3000), 
+            math.random(-3000, 3000)
+        ),
+        Accelerated = pos + look * 1000
+    }
+    
+    direction = curveDirections[current_curve] or curveDirections.Accelerated
 
-    if current_curve == 'Up' then
-        direction = pos + up * 1000
-    elseif current_curve == 'Right' then
-        direction = pos + right * 1000
-    elseif current_curve == 'Left' then
-        direction = pos - right * 1000
-    elseif current_curve == 'Backwards' then
-        direction = pos - look * 1000
-    elseif current_curve == 'Random' then
-        direction = Vector3.new(math.random(-3000, 3000), math.random(-3000, 3000), math.random(-3000, 3000))
-    elseif current_curve == 'Accelerated' then
-        direction = pos + look * 1000 -- Sama sama
-    else
-        direction = pos + look * 1000 -- Default
-    end
-
-    local DirectionCF = CFrame.new(pos, direction) -- Use direction instead of lookTarget... yeah
-
-    return {0, DirectionCF, Events, Used}
-end
-
--- Assuming Remotes, Key, Settings, hit_Sound, SoundCooldown, and ball_properties are defined elsewhere?
-local foundFake = false
-for _, Args in pairs(Remotes) do
-    if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
-        foundFake = true
-        break
-    end
-end
-
-Auto_Parry.Parry = function()
-    local Parry_Data = Auto_Parry.Parry_Data()
-    for Remote, Args in pairs(Remotes) do
-        local Hash
-        if foundFake then
-            Hash = nil
-        else
-            Hash = Args
+    -- Mendapatkan daftar entitas yang hidup
+    local alive = workspace.Alive:GetChildren()
+    local events = {}
+    for _, entity in ipairs(alive) do
+        if entity.PrimaryPart then
+            events[tostring(entity)] = camera:WorldToScreenPoint(entity.PrimaryPart.Position)
         end
-        Remote:FireServer(Hash, Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
     end
 
-    if Settings.HitEffectEnabled then
-        AutoParry.play_hit_effect()
-    end
-    if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
-        hit_Sound:Play()
-        SoundCooldown = tick()
-    end
-    task.delay(0.25, function()
-        if ball_properties.parries > 0 then
-            ball_properties.parries -= 1
+    local directionCF = CFrame.new(pos, direction)
+    local parryData = {0, directionCF, events, usedPosition}
+
+    -- Menentukan target aim
+    local is_mobile = UserInputService.TouchEnabled
+    local aim_target = Settings.CursorTargeting and not is_mobile and 
+        Player.get_closest_player_to_cursor() or Player.get_aim_entity()
+    
+    AutoParry.target.aim = aim_target or AutoParry.target.aim
+    
+    if AutoParry.target.aim and AutoParry.target.aim.PrimaryPart then
+        local target_position = AutoParry.target.aim.PrimaryPart.Position
+        if AutoParry.ball.ball_entity and ball_properties.velocity then
+            local time_to_reach = ball_properties.distance / ball_properties.speed
+            target_position = linear_predict(
+                ball_properties.position,
+                ball_properties.position + ball_properties.velocity * time_to_reach,
+                time_to_reach
+            )
         end
-    end)
+        AutoParry.entity_properties.server_position = target_position
+    end
+
+    if not ball_properties.auto_spam then
+        AutoParry.perform_grab_animation()
+        ball_properties.cooldown = true
+
+        -- Cek fake hash
+        for _, args in pairs(Remotes) do
+            if args == "PARRY_HASH_FAKE_1" or args == "_G" then
+                foundFake = true
+                break
+            end
+        end
+
+        -- Mengirim remote events
+        for remote, args in pairs(Remotes) do
+            local hash = foundFake and nil or args
+            remote:FireServer(hash, Key, unpack(parryData))
+        end
+
+        -- Efek dan suara
+        if Settings.HitEffectEnabled then
+            AutoParry.play_hit_effect()
+        end
+        
+        if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
+            hit_Sound:Play()
+            SoundCooldown = tick()
+        end
+
+        -- Cooldown handling
+        task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
+            if ball_properties.parries and ball_properties.parries > 0 then
+                ball_properties.parries = ball_properties.parries - 1
+            end
+            ball_properties.cooldown = false
+        end)
+
+        Cooldown = tick()
+    end
+
+    return parryData
 end
 
 function AutoParry.play_hit_effect()
@@ -920,7 +950,7 @@ ReplicatedStorage.Remotes.ParrySuccessAll.OnClientEvent:Connect(function(_, root
         end
     end)
     if AutoParry.ball.properties.auto_spam then
-        Auto_Parry.Parry()
+        AutoParry.perform_parry()
     end
 end)
 
@@ -1041,7 +1071,7 @@ RunService.PreSimulation:Connect(function()
     if not ball_properties.auto_spam or ball_properties.distance > 10 or Player.Entity.properties.ping > 500 then
         return
     end
-    Auto_Parry.Parry()
+    AutoParry.perform_parry()
 end)
 
 RunService.RenderStepped:Connect(function()
@@ -1155,7 +1185,7 @@ ConnectionsManager["auto_parry"] = RunService.PostSimulation:Connect(function()
         return
     end
 
-	Auto_Parry.Parry()
+	AutoParry.perform_parry()
 
 	task.spawn(function()
 		repeat
