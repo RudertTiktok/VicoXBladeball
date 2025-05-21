@@ -454,9 +454,6 @@ function Auto_Parry.Parry_Data()
     local current_curve = Settings.CurveMethod
     local direction
 
-    local current_curve = Settings.CurveMethod
-    local direction
-
     if current_curve == 'Up' then
         direction = pos + up * 1000
     elseif current_curve == 'Right' then
