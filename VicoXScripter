@@ -503,7 +503,7 @@ if AutoParry.target.aim and AutoParry.target.aim.PrimaryPart then
     AutoParry.entity_properties.server_position = target_position
 end
 
-if not ball_properties.auto_spam then
+if not AutoParry.ball.properties.auto_spam then
     AutoParry.perform_grab_animation()
     ball_properties.cooldown = true
 
