@@ -466,7 +466,7 @@ function Auto_Parry.Parry_Data()
         direction = pos + look * 1000
     end
 
-	local lookTarget = directions[current_curve] or (pos + look * 1000)
+	local lookTarget = current_curve or (pos + look * 1000)
 	local DirectionCF = CFrame.new(pos, lookTarget)
 
 	return {0, DirectionCF, Events, Used}
