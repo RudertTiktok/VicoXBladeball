@@ -119,7 +119,6 @@ local Settings = {
     HitEffectParticles = 3,
     HitSound = "DC-15X"
 }
-setfpscap(120);
 task.spawn(function()
     for _, Value in getgc() do
         if type(Value) == 'function' and islclosure(Value) then
