@@ -503,9 +503,6 @@ Auto_Parry.Parry = function()
         hit_Sound:Play()
         SoundCooldown = tick()
     end
-    if ball_properties.parries > 7 then
-        return false
-    end
     ball_properties.parries += 1
     task.delay(0.5, function()
         if ball_properties.parries > 0 then
