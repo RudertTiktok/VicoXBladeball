@@ -119,7 +119,7 @@ local Settings = {
     HitEffectParticles = 3,
     HitSound = "DC-15X"
 }
-setfpscap(60);
+setfpscap(120);
 task.spawn(function()
     for _, Value in getgc() do
         if type(Value) == 'function' and islclosure(Value) then
@@ -253,8 +253,6 @@ local Player = {
         }
     }
 }
-
-local Auto_Parry = {};
 
 -- Utility Functions
 local function linear_predict(a, b, time_volume)
@@ -489,38 +487,38 @@ function AutoParry.perform_parry()
     return {0, directionCF, events, usedPosition}
 end
 
-    -- Menentukan target aim
-    local is_mobile = UserInputService.TouchEnabled
-    local aim_target = Settings.CursorTargeting and not is_mobile and 
-        Player.get_closest_player_to_cursor() or Player.get_aim_entity()
-    
-    AutoParry.target.aim = aim_target or AutoParry.target.aim
-    
-    if AutoParry.target.aim and AutoParry.target.aim.PrimaryPart then
-        local target_position = AutoParry.target.aim.PrimaryPart.Position
-        if AutoParry.ball.ball_entity and ball_properties.velocity then
-            local time_to_reach = ball_properties.distance / ball_properties.speed
-            target_position = linear_predict(
-                ball_properties.position,
-                ball_properties.position + ball_properties.velocity * time_to_reach,
-                time_to_reach
-            )
-        end
-        AutoParry.entity_properties.server_position = target_position
-    end
+-- Menentukan target aim
+local is_mobile = UserInputService.TouchEnabled
+local aim_target = Settings.CursorTargeting and not is_mobile and 
+    Player.get_closest_player_to_cursor() or Player.get_aim_entity()
 
-    if not ball_properties.auto_spam then
-        AutoParry.perform_grab_animation()
-        ball_properties.cooldown = true
+AutoParry.target.aim = aim_target or AutoParry.target.aim
 
-        -- Cek fake hash
-        local foundFake = false
-for _, Args in pairs(Remotes) do
-    if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
-        foundFake = true
-        break
+if AutoParry.target.aim and AutoParry.target.aim.PrimaryPart then
+    local target_position = AutoParry.target.aim.PrimaryPart.Position
+    if AutoParry.ball.ball_entity and ball_properties.velocity then
+        local time_to_reach = ball_properties.distance / ball_properties.speed
+        target_position = linear_predict(
+            ball_properties.position,
+            ball_properties.position + ball_properties.velocity * time_to_reach,
+            time_to_reach
+        )
     end
+    AutoParry.entity_properties.server_position = target_position
 end
+
+if not ball_properties.auto_spam then
+    AutoParry.perform_grab_animation()
+    ball_properties.cooldown = true
+
+    -- Cek fake hash
+    local foundFake = false
+    for _, Args in pairs(Remotes) do
+        if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
+            foundFake = true
+            break
+        end
+    end
 
     local Parry_Data = AutoParry.Parry_Data()
     for Remote, Args in pairs(Remotes) do
@@ -533,26 +531,26 @@ end
         Remote:FireServer(Hash, Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
     end
 
-        -- Efek dan suara
-        if Settings.HitEffectEnabled then
-            AutoParry.play_hit_effect()
-        end
-        
-        if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
-            hit_Sound:Play()
-            SoundCooldown = tick()
-        end
-
-        -- Cooldown handling
-        task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
-            if ball_properties.parries and ball_properties.parries > 0 then
-                ball_properties.parries = ball_properties.parries - 1
-            end
-            ball_properties.cooldown = false
-        end)
-
-        Cooldown = tick()
+    -- Efek dan suara
+    if Settings.HitEffectEnabled then
+        AutoParry.play_hit_effect()
     end
+    
+    if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
+        hit_Sound:Play()
+        SoundCooldown = tick()
+    end
+
+    -- Cooldown handling
+    task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
+        if ball_properties.parries and ball_properties.parries > 0 then
+            ball_properties.parries = ball_properties.parries - 1
+        end
+        ball_properties.cooldown = false
+    end)
+
+    Cooldown = tick()
+end
 
 function AutoParry.play_hit_effect()
     if not Settings.HitEffectEnabled then return end
