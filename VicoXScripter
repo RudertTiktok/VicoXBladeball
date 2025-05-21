@@ -426,29 +426,36 @@ function AutoParry.perform_grab_animation()
 end
 
 function Auto_Parry.Parry_Data()
-	local Camera = workspace.CurrentCamera
-	if not Camera then return {0, CFrame.new(), {}, {0, 0}} end
+    local Camera = workspace.CurrentCamera
+    if not Camera then return {0, CFrame.new(), {}, {0, 0}} end
 
-	local ViewportSize = Camera.ViewportSize
-	local MouseLocation = (Last_Input == Enum.UserInputType.MouseButton1 or Last_Input == Enum.UserInputType.MouseButton2 or Last_Input == Enum.UserInputType.Keyboard)
-		and UserInputService:GetMouseLocation()
-		or Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
+    local ViewportSize = Camera.ViewportSize
+    local MouseLocation = (Last_Input == Enum.UserInputType.MouseButton1 or 
+                          Last_Input == Enum.UserInputType.MouseButton2 or 
+                          Last_Input == Enum.UserInputType.Keyboard)
+        and UserInputService:GetMouseLocation()
+        or Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
 
-	local Used = {MouseLocation.X, MouseLocation.Y}
+    local Used = {MouseLocation.X, MouseLocation.Y}
 
-	local Alive = workspace.Alive:GetChildren()
-	local Events = table.create(#Alive)
-	for _, v in ipairs(Alive) do
-			Events[tostring(v)] = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
-	end
+    local Alive = workspace.Alive:GetChildren()
+    local Events = table.create(#Alive)
+    for _, v in ipairs(Alive) do
+        if v.PrimaryPart then -- Check if PrimaryPart exists
+            Events[tostring(v)] = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
+        end
+    end
 
-	local pos = Camera.CFrame.Position
-	local look = Camera.CFrame.LookVector
-	local up = Camera.CFrame.UpVector
-	local right = Camera.CFrame.RightVector
+    local pos = Camera.CFrame.Position
+    local look = Camera.CFrame.LookVector
+    local up = Camera.CFrame.UpVector
+    local right = Camera.CFrame.RightVector
 
-	local current_curve = Settings.CurveMethod
-        local direction
+    local current_curve = Settings.CurveMethod
+    local direction
+
+    local current_curve = Settings.CurveMethod
+    local direction
 
     if current_curve == 'Up' then
         direction = pos + up * 1000
@@ -461,16 +468,17 @@ function Auto_Parry.Parry_Data()
     elseif current_curve == 'Random' then
         direction = Vector3.new(math.random(-3000, 3000), math.random(-3000, 3000), math.random(-3000, 3000))
     elseif current_curve == 'Accelerated' then
-        direction = pos + look * 1000
+        direction = pos + look * 1000 -- Sama sama
     else
-        direction = pos + look * 1000
+        direction = pos + look * 1000 -- Default
     end
 
-	local lookTarget = current_curve or (pos + look * 1000)
-	local DirectionCF = CFrame.new(pos, lookTarget)
+    local DirectionCF = CFrame.new(pos, direction) -- Use direction instead of lookTarget... yeah
 
-	return {0, DirectionCF, Events, Used}
+    return {0, DirectionCF, Events, Used}
 end
+
+-- Assuming Remotes, Key, Settings, hit_Sound, SoundCooldown, and ball_properties are defined elsewhere?
 local foundFake = false
 for _, Args in pairs(Remotes) do
     if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
@@ -478,6 +486,7 @@ for _, Args in pairs(Remotes) do
         break
     end
 end
+
 Auto_Parry.Parry = function()
     local Parry_Data = Auto_Parry.Parry_Data()
     for Remote, Args in pairs(Remotes) do
