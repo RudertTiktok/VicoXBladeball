@@ -489,7 +489,7 @@ AutoParry.perform_parry = function()
         SoundCooldown = tick()
     end
 
-    if parries > 7 then
+    if ball_properties.parries > 7 then
         return false
     end
     ball_properties.parries = ball_properties.parries + 1
