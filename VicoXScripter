@@ -301,41 +301,6 @@ function Player.get_closest_player_to_cursor()
     return closest_player
 end
 
-AutoParry.Parry_Animation = function()
-	local Parry_Animation = ReplicatedStorage.Shared.SwordAPI.Collection.Default:FindFirstChild("GrabParry");
-	local Current_Sword = LocalPlayer.Character:GetAttribute("CurrentlyEquippedSword");
-	if (not Current_Sword or not Parry_Animation) then
-		return;
-	end
-	local Sword_Data = ReplicatedStorage.Shared.ReplicatedInstances.Swords.GetSword:Invoke(Current_Sword);
-	if (not Sword_Data or not Sword_Data['AnimationType']) then
-		return;
-	end
-	for _, object in pairs(ReplicatedStorage.Shared.SwordAPI.Collection:GetChildren()) do
-		if (object.Name == Sword_Data['AnimationType']) then
-			local sword_animation_type = (object:FindFirstChild("GrabParry") and "GrabParry") or "Grab";
-			Parry_Animation = object[sword_animation_type];
-		end
-	end
-	Grab_Parry = LocalPlayer.Character.Humanoid.Animator:LoadAnimation(Parry_Animation);
-	Grab_Parry:Play();
-end;
-AutoParry.Play_Animation = function(animationName)
-	local Animations = Animation.storage[animationName];
-	if not Animations then
-		return false;
-	end
-	local Animator = LocalPlayer.Character.Humanoid.Animator;
-	if (Animation.track and Animation.track:IsA("AnimationTrack")) then
-		Animation.track:Stop();
-	end
-	Animation.track = Animator:LoadAnimation(Animations);
-	if (Animation.track and Animation.track:IsA("AnimationTrack")) then
-		Animation.track:Play();
-	end
-	Animation.current = animationName;
-end;
-
 AutoParry.get_ball = function()
 	for _, instance in pairs(Workspace.Balls:GetChildren()) do
 		if instance:GetAttribute("realBall") then
