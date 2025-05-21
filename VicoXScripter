@@ -431,7 +431,7 @@ function AutoParry.perform_parry()
 
     -- Update properties
     AutoParry.ball.properties.parries = (AutoParry.ball.properties.parries or 0) + 1
-    ball_properties.last_hit = tick()
+    AutoParry.ball.properties.last_hit = tick()
     parryCount = (parryCount or 0) + 1
 
     -- Mendapatkan posisi kursor
