@@ -1321,8 +1321,8 @@ AutoSection:NewSlider({
 
 AutoSection:NewDropdown({
     Title = "Curve Method",
-    Data = {"Up", "Right", "Left", "Linear", "Accelerated", "Backwards", "Random"},
-    Default = "Linear",
+    Data = {"Up", "Right", "Left", "Accelerated", "Backwards", "Random"},
+    Default = "Accelerated",
     Callback = function(value)
         Settings.CurveMethod = value
         print("Curve Method:", value)
