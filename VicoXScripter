@@ -119,7 +119,6 @@ local Settings = {
 }
 local Parry_Key = nil
 local Remotes = {}
-local foundFake = false
 
 task.spawn(function()
     for _, Value in getgc() do
@@ -485,7 +484,8 @@ function AutoParry.perform_parry()
     end
 
     local directionCF = CFrame.new(pos, direction)
-    local parryData = {0, directionCF, events, usedPosition}
+    return {0, directionCF, events, usedPosition}
+end
 
     -- Menentukan target aim
     local is_mobile = UserInputService.TouchEnabled
@@ -512,18 +512,24 @@ function AutoParry.perform_parry()
         ball_properties.cooldown = true
 
         -- Cek fake hash
-        for _, args in pairs(Remotes) do
-            if args == "PARRY_HASH_FAKE_1" or args == "_G" then
-                foundFake = true
-                break
-            end
-        end
+        local foundFake = false
+for _, Args in pairs(Remotes) do
+    if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
+        foundFake = true
+        break
+    end
+end
 
-        -- Mengirim remote events
-        for remote, args in pairs(Remotes) do
-            local hash = foundFake and nil or args
-            remote:FireServer(hash, Key, unpack(parryData))
+    local Parry_Data = AutoParry.Parry_Data()
+    for Remote, Args in pairs(Remotes) do
+        local Hash
+        if foundFake then
+            Hash = nil
+        else
+            Hash = Args
         end
+        Remote:FireServer(Hash, Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
+    end
 
         -- Efek dan suara
         if Settings.HitEffectEnabled then
