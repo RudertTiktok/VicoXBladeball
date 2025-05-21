@@ -259,6 +259,8 @@ local Player = {
     }
 }
 
+local Auto_Parry = {};
+
 -- Utility Functions
 local function linear_predict(a, b, time_volume)
     return a + (b - a) * time_volume
@@ -423,32 +425,30 @@ function AutoParry.perform_grab_animation()
     Player.Entity.properties.grab_animation:Play()
 end
 
-function AutoParry.perform_parrys()
-    local Camera = workspace.CurrentCamera
-    if not Camera then return {0, CFrame.new(), {}, {0, 0}} end
+function Auto_Parry.Parry_Data()
+	local Camera = workspace.CurrentCamera
+	if not Camera then return {0, CFrame.new(), {}, {0, 0}} end
 
-    local ViewportSize = Camera.ViewportSize
-    local MouseLocation = (Last_Input == Enum.UserInputType.MouseButton1 or Last_Input == Enum.UserInputType.MouseButton2 or Last_Input == Enum.UserInputType.Keyboard)
-        and UserInputService:GetMouseLocation()
-        or Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
+	local ViewportSize = Camera.ViewportSize
+	local MouseLocation = (Last_Input == Enum.UserInputType.MouseButton1 or Last_Input == Enum.UserInputType.MouseButton2 or Last_Input == Enum.UserInputType.Keyboard)
+		and UserInputService:GetMouseLocation()
+		or Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
 
-    local Used = {MouseLocation.X, MouseLocation.Y}
+	local Used = {MouseLocation.X, MouseLocation.Y}
 
-    local Alive = workspace.Alive:GetChildren()
-    local Events = table.create(#Alive)
-    for _, v in ipairs(Alive) do
-        if v.PrimaryPart then
-            Events[tostring(v)] = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
-        end
-    end
+	local Alive = workspace.Alive:GetChildren()
+	local Events = table.create(#Alive)
+	for _, v in ipairs(Alive) do
+			Events[tostring(v)] = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
+	end
 
-    local pos = Camera.CFrame.Position
-    local look = Camera.CFrame.LookVector
-    local up = Camera.CFrame.UpVector
-    local right = Camera.CFrame.RightVector
+	local pos = Camera.CFrame.Position
+	local look = Camera.CFrame.LookVector
+	local up = Camera.CFrame.UpVector
+	local right = Camera.CFrame.RightVector
 
-    local current_curve = Settings.CurveMethod
-    local direction
+	local current_curve = Settings.CurveMethod
+        local direction
 
     if current_curve == 'Up' then
         direction = pos + up * 1000
@@ -466,11 +466,11 @@ function AutoParry.perform_parrys()
         direction = pos + look * 1000
     end
 
-    local DirectionCF = CFrame.new(pos, direction)
+	local lookTarget = directions[current_curve] or (pos + look * 1000)
+	local DirectionCF = CFrame.new(pos, lookTarget)
 
-    return {0, DirectionCF, Events, Used}
+	return {0, DirectionCF, Events, Used}
 end
-
 local foundFake = false
 for _, Args in pairs(Remotes) do
     if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
@@ -478,31 +478,8 @@ for _, Args in pairs(Remotes) do
         break
     end
 end
-
-AutoParry.perform_parry = function()
-    local ball_properties = AutoParry.ball.properties
-    if ball_properties.cooldown and not ball_properties.auto_spam then
-        return
-    end
-
-    if tick() - Cooldown < 0.1 or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or not workspace.CurrentCamera then
-        return
-    end
-
-    local target_position = AutoParry.entity_properties.server_position
-
-    local aim_target = Settings.CursorTargeting and not is_mobile and Player.get_closest_player_to_cursor() or Player.get_aim_entity()
-    AutoParry.target.aim = aim_target or AutoParry.target.aim
-    if AutoParry.target.aim and AutoParry.target.aim:FindFirstChild("PrimaryPart") then
-        target_position = AutoParry.target.aim.PrimaryPart.Position
-        if AutoParry.ball.ball_entity then
-            local ball_vel = ball_properties.velocity
-            local time_to_reach = ball_properties.distance / ball_properties.speed
-            target_position = linear_predict(ball_properties.position, ball_properties.position + ball_vel * time_to_reach, time_to_reach)
-        end
-    end
-
-    local Parry_Data = AutoParry.perform_parrys()
+Auto_Parry.Parry = function()
+    local Parry_Data = Auto_Parry.Parry_Data()
     for Remote, Args in pairs(Remotes) do
         local Hash
         if foundFake then
@@ -520,16 +497,13 @@ AutoParry.perform_parry = function()
         hit_Sound:Play()
         SoundCooldown = tick()
     end
-
     if ball_properties.parries > 7 then
         return false
     end
-    ball_properties.parries = ball_properties.parries + 1
-    ball_properties.last_hit = tick()
-    parryCount = parryCount + 1
-    task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
+    ball_properties.parries += 1
+    task.delay(0.5, function()
         if ball_properties.parries > 0 then
-            ball_properties.parries = ball_properties.parries - 1
+            ball_properties.parries -= 1
         end
     end)
 end
@@ -1170,7 +1144,7 @@ ConnectionsManager["auto_parry"] = RunService.PostSimulation:Connect(function()
         return
     end
 
-	AutoParry.perform_parry();
+	Auto_Parry.Parry();
 
 	task.spawn(function()
 		repeat
