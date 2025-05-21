@@ -194,7 +194,7 @@ Highlight1.FillTransparency = 0
 Highlight1.OutlineColor = Color3.new(1, 1, 1)
 
 -- AutoParry structure
-local AutoParry = {
+local AutoParry = AutoParry or {
     ball = {
         ball_entity = nil,
         client_ball_entity = nil,
@@ -236,21 +236,6 @@ local AutoParry = {
         distance = 0,
         speed = 0,
         dot = 0
-    }
-}
-
--- Player structure
-local Player = {
-    Entity = {
-        properties = {
-            ping = 1,
-            sword = "",
-            server_position = Vector3.zero,
-            velocity = Vector3.zero,
-            speed = 0,
-            is_moving = false,
-            grab_animation = nil
-        }
     }
 }
 
@@ -410,7 +395,7 @@ function AutoParry.perform_grab_animation()
             continue
         end
 
-        local sword_animation_type = object:FindFirstChild('Grab') and 'Grab' or 'GrabParry'
+        local sword_animaotion_type = object:FindFirstChild('Grab') and 'Grab' or 'GrabParry'
         animation = object[sword_animation_type]
     end
 
@@ -419,11 +404,18 @@ function AutoParry.perform_grab_animation()
 end
 
 function AutoParry.perform_parry()
-    local ball_properties = AutoParry.ball.properties
+    local ball_properties = AutoParry.ball and AutoParry.ball.properties
     local camera = workspace.CurrentCamera
     
+    -- Debug untuk melacak nilai nil
+    if not AutoParry.ball then
+        warn("AutoParry.ball is nil")
+    elseif not AutoParry.ball.properties then
+        warn("AutoParry.ball.properties is nil")
+    end
+    
     -- Validasi awal
-    if not camera or ball_properties.cooldown and not ball_properties.auto_spam then
+    if not camera or not ball_properties or (ball_properties.cooldown and not ball_properties.auto_spam) then
         return {0, CFrame.new(), {}, {0, 0}}
     end
     
@@ -487,7 +479,6 @@ function AutoParry.perform_parry()
     return {0, directionCF, events, usedPosition}
 end
 
--- Menentukan target aim
 local is_mobile = UserInputService.TouchEnabled
 local aim_target = Settings.CursorTargeting and not is_mobile and 
     Player.get_closest_player_to_cursor() or Player.get_aim_entity()
