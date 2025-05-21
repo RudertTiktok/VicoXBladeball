@@ -409,7 +409,6 @@ function AutoParry.perform_grab_animation()
 end
 
 function AutoParry.perform_parry()
-    local ball_properties = AutoParry.ball and AutoParry.ball.properties
     local camera = workspace.CurrentCamera
     
     -- Debug untuk melacak nilai nil
@@ -420,7 +419,7 @@ function AutoParry.perform_parry()
     end
     
     -- Validasi awal
-    if not camera or not ball_properties or (ball_properties.cooldown and not ball_properties.auto_spam) then
+    if not camera or not AutoParry.ball.properties or (AutoParry.ball.properties.cooldown and not AutoParry.ball.properties.auto_spam) then
         return {0, CFrame.new(), {}, {0, 0}}
     end
     
@@ -431,7 +430,7 @@ function AutoParry.perform_parry()
     end
 
     -- Update properties
-    ball_properties.parries = (ball_properties.parries or 0) + 1
+    AutoParry.ball.properties.parries = (AutoParry.ball.properties.parries or 0) + 1
     ball_properties.last_hit = tick()
     parryCount = (parryCount or 0) + 1
 
@@ -539,10 +538,10 @@ if not AutoParry.ball.properties.auto_spam then
 
     -- Cooldown handling
     task.delay(AutoParry.ball.properties.auto_spam and 0.15 or 0.25, function()
-        if ball_properties.parries and ball_properties.parries > 0 then
-            ball_properties.parries = ball_properties.parries - 1
+        if AutoParry.ball.properties.parries and AutoParry.ball.properties.parries > 0 then
+            AutoParry.ball.properties.parries = AutoParry.ball.properties.parries - 1
         end
-        ball_properties.cooldown = false
+        AutoParry.ball.properties.cooldown = false
     end)
 
     Cooldown = tick()
