@@ -912,7 +912,7 @@ ReplicatedStorage.Remotes.ParrySuccessAll.OnClientEvent:Connect(function(_, root
         end
     end)
     if AutoParry.ball.properties.auto_spam then
-        AutoParry.perform_parry()
+        Auto_Parry.Parry()
     end
 end)
 
@@ -1033,7 +1033,7 @@ RunService.PreSimulation:Connect(function()
     if not ball_properties.auto_spam or ball_properties.distance > 10 or Player.Entity.properties.ping > 500 then
         return
     end
-    AutoParry.perform_parry()
+    Auto_Parry.Parry()
 end)
 
 RunService.RenderStepped:Connect(function()
