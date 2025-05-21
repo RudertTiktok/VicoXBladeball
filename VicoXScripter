@@ -505,7 +505,7 @@ end
 
 if not AutoParry.ball.properties.auto_spam then
     AutoParry.perform_grab_animation()
-    ball_properties.cooldown = true
+    AutoParry.ball.properties.cooldown = true
 
     -- Cek fake hash
     local foundFake = false
@@ -538,7 +538,7 @@ if not AutoParry.ball.properties.auto_spam then
     end
 
     -- Cooldown handling
-    task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
+    task.delay(AutoParry.ball.properties.auto_spam and 0.15 or 0.25, function()
         if ball_properties.parries and ball_properties.parries > 0 then
             ball_properties.parries = ball_properties.parries - 1
         end
