@@ -426,6 +426,15 @@ function AutoParry.perform_grab_animation()
 end
 
 function Auto_Parry.Parry_Data()
+        local ball_properties = AutoParry.ball.properties
+	
+	if ball_properties.cooldown and not ball_properties.auto_spam then
+		return
+	end
+
+	ball_properties.parries += 1
+	AutoParry.ball.properties.last_hit = tick()
+
     local Camera = workspace.CurrentCamera
     if not Camera then return {0, CFrame.new(), {}, {0, 0}} end
 
@@ -503,10 +512,9 @@ Auto_Parry.Parry = function()
         hit_Sound:Play()
         SoundCooldown = tick()
     end
-    AutoParry.ball_properties.parries += 1
     task.delay(0.25, function()
-        if AutoParry.ball_properties.parries > 0 then
-            AutoParry.ball_properties.parries -= 1
+        if ball_properties.parries > 0 then
+            ball_properties.parries -= 1
         end
     end)
 end
