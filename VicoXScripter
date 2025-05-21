@@ -1147,7 +1147,7 @@ ConnectionsManager["auto_parry"] = RunService.PostSimulation:Connect(function()
         return
     end
 
-	Auto_Parry.Parry();
+	Auto_Parry.Parry()
 
 	task.spawn(function()
 		repeat
