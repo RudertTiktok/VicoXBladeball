@@ -122,32 +122,6 @@ local Settings = {
     HitSound = "DC-15X"
 }
 
--- Initialize Parry_Key and Remotes
-local Parry_Key = nil
-local Remotes = {}
-
-task.spawn(function()
-    for _, Value in getgc() do
-        if type(Value) == 'function' and islclosure(Value) then
-            local Protos = debug.getprotos(Value)
-            local Upvalues = debug.getupvalues(Value)
-            local Constants = debug.getconstants(Value)
-            if #Protos == 4 and #Upvalues == 24 and #Constants >= 102 then
-                local c62 = Constants[62]
-                local c64 = Constants[64]
-                local c65 = Constants[65]
-                Remotes[debug.getupvalue(Value, 16)] = c62
-                Parry_Key = debug.getupvalue(Value, 17)
-                Remotes[debug.getupvalue(Value, 18)] = c64
-                Remotes[debug.getupvalue(Value, 19)] = c65
-                break
-            end
-        end
-    end
-end)
-
-local Key = Parry_Key;
-
 -- Data Folder
 local nurysium_Data = Instance.new('Folder', game:GetService('CoreGui'))
 nurysium_Data.Name = 'nurysium_temp'
@@ -402,6 +376,32 @@ function AutoParry.perform_grab_animation()
     Player.Entity.properties.grab_animation = character.Humanoid:LoadAnimation(animation)
     Player.Entity.properties.grab_animation:Play()
 end
+
+-- Initialize Parry_Key and Remotes
+local Parry_Key = nil
+local Remotes = {}
+
+task.spawn(function()
+    for _, Value in getgc() do
+        if type(Value) == 'function' and islclosure(Value) then
+            local Protos = debug.getprotos(Value)
+            local Upvalues = debug.getupvalues(Value)
+            local Constants = debug.getconstants(Value)
+            if #Protos == 4 and #Upvalues == 24 and #Constants >= 102 then
+                local c62 = Constants[62]
+                local c64 = Constants[64]
+                local c65 = Constants[65]
+                Remotes[debug.getupvalue(Value, 16)] = c62
+                Parry_Key = debug.getupvalue(Value, 17)
+                Remotes[debug.getupvalue(Value, 18)] = c64
+                Remotes[debug.getupvalue(Value, 19)] = c65
+                break
+            end
+        end
+    end
+end)
+
+local Key = Parry_Key;
 
 function AutoParry.parry_data()
     local Camera = workspace.CurrentCamera
