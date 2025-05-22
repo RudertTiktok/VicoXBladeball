@@ -507,10 +507,6 @@ function AutoParry.perform_parry()
         Remote:FireServer(Hash, Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
     end
 
-    if if ball_properties.parries > 7 then
-        return
-    end
-
     if not ball_properties.auto_spam then
         AutoParry.perform_grab_animation()
         ball_properties.cooldown = true
@@ -519,16 +515,17 @@ function AutoParry.perform_parry()
     if Settings.HitEffectEnabled then
         AutoParry.play_hit_effect()
     end
-    if Settings.HitSoundEnabled and tick() then
+    if Settings.HitSoundEnabled then
         hit_Sound:Play()
-        SoundCooldown = tick()
     end
 
-    task.delay(ball_properties.auto_spam and 0.15 or 0.25, function()
+    task.delay(0.5, function()
         if ball_properties.parries > 0 then
             ball_properties.parries -= 1
-        end
-    end)
+        end)
+
+    Cooldown = tick()
+end
 
 function AutoParry.play_hit_effect()
     if not Settings.HitEffectEnabled then return end
