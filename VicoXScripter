@@ -483,10 +483,6 @@ function AutoParry.perform_parry()
         Icon = "rbxassetid://8997385628"
     })
 
-    if ball_properties.parries > 7 then
-        return
-    end
-
     local is_mobile = UserInputService.TouchEnabled
     local aim_target = Settings.CursorTargeting and not is_mobile and Player.get_closest_player_to_cursor() or Player.get_aim_entity()
     AutoParry.target.aim = aim_target or AutoParry.target.aim
@@ -511,8 +507,8 @@ function AutoParry.perform_parry()
         Remote:FireServer(Hash, Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
     end
 
-    if Parries > 7 then
-        return false
+    if if ball_properties.parries > 7 then
+        return
     end
 
     if not ball_properties.auto_spam then
