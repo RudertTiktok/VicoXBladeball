@@ -1,6 +1,3 @@
-print("if rudert < dev then start()")
-print("error: wrong script broski... no im jk")
-
 -- Services
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -40,7 +37,7 @@ uiGradient.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0), Color3.fromRGB(50,
 uiGradient.Rotation = 45
 
 local textLabel = Instance.new("TextLabel")
-textLabel.Text = "Credit: Rudert, Flezzpe, and VicoX"
+textLabel.Text = "Credit: Rudert, Flezzpe"
 textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 textLabel.TextSize = 50
 textLabel.TextStrokeTransparency = 0.6
@@ -92,6 +89,7 @@ local Alive = Workspace:FindFirstChild("Alive") or Workspace
 local Dead = Workspace:FindFirstChild("Dead") or Workspace
 local Camera = Workspace.CurrentCamera
 local Cooldown = tick()
+local SoundCooldown = tick()
 local is_respawned = false
 local lastAntiIdleTime = tick()
 local parryCount = 0
@@ -120,16 +118,55 @@ local Settings = {
     HitEffectParticles = 3,
     HitSound = "DC-15X"
 }
+
+-- Initialize Parry_Key and Remotes
 local Parry_Key = nil
 local Remotes = {}
+local foundFake = false
+
+task.spawn(function()
+    for _, Value in pairs(getgc()) do
+        if type(Value) == 'function' and islclosure(Value) then
+            local Protos = debug.getprotos(Value) or {}
+            local Upvalues = debug.getupvalues(Value) or {}
+            local Constants = debug.getconstants(Value) or {}
+            if #Protos == 4 and #Upvalues == 24 and #Constants >= 102 then
+                local c62 = Constants[62]
+                local c64 = Constants[64]
+                local c65 = Constants[65]
+                if c62 and c64 and c65 then
+                    Remotes[debug.getupvalue(Value, 16)] = c62
+                    Parry_Key = debug.getupvalue(Value, 17)
+                    Remotes[debug.getupvalue(Value, 18)] = c64
+                    Remotes[debug.getupvalue(Value, 19)] = c65
+                    print("Found target function. Parry_Key:", Parry_Key, "Remotes:", Remotes)
+                    break
+                else
+                    warn("Constants missing at required indices:", c62, c64, c65)
+                end
+            end
+        end
+    end
+    if not Parry_Key or not next(Remotes) then
+        warn("Failed to initialize Parry_Key or Remotes")
+    else
+        for _, Args in pairs(Remotes) do
+            if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
+                foundFake = true
+                print("Found fake hash:", Args)
+                break
+            end
+        end
+    end
+end)
 
 -- Data Folder
 local nurysium_Data = Instance.new('Folder', game:GetService('CoreGui'))
 nurysium_Data.Name = 'nurysium_temp'
 
-local hit_Sound = Instance.new('Sound', nurysium_Data)
+local hit* hit_Sound = Instance.new('Sound', nurysium_Data)
 hit_Sound.SoundId = 'rbxassetid://936447863' -- Default to DC-15X
-hit_Sound.Volume = 1
+hit_Sound.Volume = 3
 
 -- Connections management
 local ConnectionsManager = {}
@@ -221,14 +258,15 @@ AutoParry.ball = {
         maximum_speed = 0,
         old_speed = 0,
         parries = 0,
-        direction = 0,
+        direction = Vector3.zero,
         distance = 0,
-        velocity = 0,
+        velocity = Vector3.zero,
         last_hit = 0,
         lerp_radians = 0,
         radians = 0,
         speed = 0,
-        dot = 0
+        dot = 0,
+        last_velocity = Vector3.zero -- Untuk deteksi curve
     }
 }
 
@@ -242,7 +280,7 @@ AutoParry.entity_properties = {
     server_position = Vector3.zero,
     velocity = Vector3.zero,
     is_moving = false,
-    direction = 0,
+    direction = Vector3.zero,
     distance = 0,
     speed = 0,
     dot = 0
@@ -333,6 +371,7 @@ function AutoParry.reset()
     ball_properties.maximum_speed = 0
     ball_properties.parries = 0
     ball_properties.last_hit = 0
+    ball_properties.last_velocity = Vector3.zero
     AutoParry.entity_properties.server_position = Vector3.zero
     AutoParry.target.current = nil
     AutoParry.target.from = nil
@@ -378,96 +417,68 @@ function AutoParry.perform_grab_animation()
     Player.Entity.properties.grab_animation:Play()
 end
 
-task.spawn(function()
-    for _, Value in getgc() do
-        if type(Value) == 'function' and islclosure(Value) then
-            local Protos = debug.getprotos(Value)
-            local Upvalues = debug.getupvalues(Value)
-            local Constants = debug.getconstants(Value)
-            if #Protos == 4 and #Upvalues == 24 and #Constants >= 102 then
-                local c62 = Constants[62]
-                local c64 = Constants[64]
-                local c65 = Constants[65]
-                Remotes[debug.getupvalue(Value, 16)] = c62
-                Parry_Key = debug.getupvalue(Value, 17)
-                Remotes[debug.getupvalue(Value, 18)] = c64
-                Remotes[debug.getupvalue(Value, 19)] = c65
-                break
-            end
-        end
-    end
-end)
-
-local Key = Parry_Key;
-
 function AutoParry.parry_data()
-    local Camera = workspace.CurrentCamera
-    if not Camera then
+    local camera = workspace.CurrentCamera
+    if not camera then
         warn("Camera not found")
         return {0, CFrame.new(), {}, {0, 0}}
     end
 
-    local ViewportSize = Camera.ViewportSize
-    local MouseLocation = (Last_Input == Enum.UserInputType.MouseButton1 or Last_Input == Enum.UserInputType.MouseButton2 or Last_Input == Enum.UserInputType.Keyboard)
-		and UserInputService:GetMouseLocation()
-		or Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
+    local viewportSize = camera.ViewportSize
+    local mouseLocation = UserInputService:GetMouseLocation()
+    local usedPosition = {mouseLocation.X, mouseLocation.Y}
 
-    local Used = {MouseLocation.X, MouseLocation.Y}
-
-    if Settings.CursorTargeting then
+    if UserInputService.TouchEnabled then
+        usedPosition = {viewportSize.X / 2, viewportSize.Y / 2}
+    elseif Settings.CursorTargeting then
         local closestPlayer = Player.get_closest_player_to_cursor()
         if closestPlayer and closestPlayer.PrimaryPart then
-            Used = Camera:WorldToScreenPoint(closestPlayer.PrimaryPart.Position)
+            usedPosition = camera:WorldToScreenPoint(closestPlayer.PrimaryPart.Position)
         end
     else
         local closestPlayer = get_closest_entity()
         if closestPlayer and closestPlayer.PrimaryPart then
-            Used = Camera:WorldToScreenPoint(closestPlayer.PrimaryPart.Position)
+            usedPosition = camera:WorldToScreenPoint(closestPlayer.PrimaryPart.Position)
         end
     end
 
-    local Alive = workspace.Alive:GetChildren()
-	local Events = table.create(#Alive)
-	for _, v in ipairs(Alive) do
-			Events[tostring(v)] = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
-	end
+    local alive = workspace.Alive:GetChildren()
+    local events = {}
+    for _, entity in ipairs(alive) do
+        if entity.PrimaryPart then
+            events[tostring(entity)] = camera:WorldToScreenPoint(entity.PrimaryPart.Position)
+        end
+    end
 
-    local pos = Camera.CFrame.Position
-    local look = Camera.CFrame.LookVector
-    local up = Camera.CFrame.UpVector
-    local right = Camera.CFrame.RightVector
+    local pos = camera.CFrame.Position
+    local look = camera.CFrame.LookVector
+    local up = camera.CFrame.UpVector
+    local right = camera.CFrame.RightVector
 
-    local directions = {
+    local curveDirections = {
         Up = pos + up * 1000,
         Right = pos + right * 1000,
         Left = pos - right * 1000,
-        Accelerated = pos + look * 1000,
         Backwards = pos - look * 1000,
-        Random = Vector3.new(math.random(-3000, 3000), math.random(-3000, 3000), math.random(-3000, 3000))
+        Random = Vector3.new(math.random(-3000, 3000), math.random(-3000, 3000), math.random(-3000, 3000)),
+        Accelerated = pos + look * 1000
     }
 
-    local lookTarget = directions[Settings.CurveMethod] or (pos + look * 1000)
-    local DirectionCF = CFrame.new(pos, lookTarget)
+    local direction = curveDirections[Settings.CurveMethod] or curveDirections.Accelerated
+    local directionCF = CFrame.new(pos, direction)
 
-    return {0, DirectionCF, Events, Used}
-end
-
-local foundFake = false
-for _, Args in pairs(Remotes) do
-    if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
-        foundFake = true
-        break
-    end
+    return {0, directionCF, events, usedPosition}
 end
 
 function AutoParry.perform_parry()
     local ball_properties = AutoParry.ball.properties
     
-    if ball_properties.cooldown and not ball_properties.auto_spam then
+    if not ball_properties or (ball_properties.cooldown and not ball_properties.auto_spam) then
+        warn("Invalid ball properties or on cooldown")
         return
     end
 
-    if tick() - Cooldown < 0.1 or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or not Camera then
+    if tick() - Cooldown < 0.15 or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or not Camera then
         return
     end
 
@@ -477,9 +488,14 @@ function AutoParry.perform_parry()
     notify.new({
         Title = "Parry Success",
         Description = "Parry Count: " .. parryCount,
-        Duration = 0.01,
+        Duration = 0.5,
         Icon = "rbxassetid://8997385628"
     })
+
+    if ball_properties.parries > 5 then
+        warn("Parry limit reached:", ball_properties.parries)
+        return
+    end
 
     local is_mobile = UserInputService.TouchEnabled
     local aim_target = Settings.CursorTargeting and not is_mobile and Player.get_closest_player_to_cursor() or Player.get_aim_entity()
@@ -488,21 +504,36 @@ function AutoParry.perform_parry()
         local target_position = AutoParry.target.aim.PrimaryPart.Position
         if AutoParry.ball.ball_entity then
             local ball_vel = ball_properties.velocity
-            local time_to_reach = ball_properties.distance / ball_properties.speed
+            local time_to_reach = ball_properties.distance / (ball_properties.speed > 0 and ball_properties.speed or 1)
             target_position = linear_predict(ball_properties.position, ball_properties.position + ball_vel * time_to_reach, time_to_reach)
         end
         AutoParry.entity_properties.server_position = target_position
     end
 
     local Parry_Data = AutoParry.parry_data()
-    for Remote, Args in pairs(Remotes) do
-        local Hash
-        if foundFake then
-            Hash = nil
-        else
-            Hash = Args
+    if not Parry_Key or not next(Remotes) then
+        warn("Parry_Key or Remotes not initialized, using VirtualInputManager")
+        local viewportSize = Camera.ViewportSize
+        local centerX, centerY = viewportSize.X / 2, viewportSize.Y / 2
+        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
+        task.wait(0.01)
+        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
+    else
+        if not Parry_Data or type(Parry_Data) ~= "table" or #Parry_Data < 4 then
+            warn("Invalid Parry_Data:", Parry_Data)
+            return
         end
-        Remote:FireServer(Hash, Key, unpack(Parry_Data))
+
+        for Remote, Args in pairs(Remotes) do
+            if Remote:IsA("RemoteEvent") then
+                local Hash = foundFake and nil or Args
+                print("Sending to Remote:", Remote, "Hash:", Hash, "Key:", Parry_Key, "Data:", unpack(Parry_Data))
+                task.wait(math.random(0.01, 0.03)) -- Anti-cheat micro delay
+                Remote:FireServer(Hash, Parry_Key, unpack(Parry_Data))
+            else
+                warn("Invalid Remote:", Remote)
+            end
+        end
     end
 
     if not ball_properties.auto_spam then
@@ -513,14 +544,16 @@ function AutoParry.perform_parry()
     if Settings.HitEffectEnabled then
         AutoParry.play_hit_effect()
     end
-    if Settings.HitSoundEnabled then
+    if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
         hit_Sound:Play()
+        SoundCooldown = tick()
     end
 
-    task.delay(0.5, function()
+    task.delay(ball_properties.auto_spam and 0.1 or 0.2, function()
         if ball_properties.parries > 0 then
             ball_properties.parries -= 1
         end
+        ball_properties.cooldown = false
     end)
 
     Cooldown = tick()
@@ -563,89 +596,74 @@ end
 
 function AutoParry.is_curved()
     local target = AutoParry.target.current
-    if not target then
-        return false
-    end
-
     local ball_properties = AutoParry.ball.properties
-    local current_target = target.Name
-
-    if target.PrimaryPart:FindFirstChild('MaxShield') and current_target ~= LocalPlayer.Name and ball_properties.distance < 50 then
+    if not target or not AutoParry.ball.ball_entity then
         return false
     end
 
+    local current_target = target.Name
+    local player_ping = Player.Entity.properties.ping / 1000 -- Konversi ke detik
+    local velocity = ball_properties.velocity
+    local last_velocity = ball_properties.last_velocity
+    local speed = ball_properties.speed
+
+    -- Deteksi perubahan sudut lintasan
+    local angle_threshold = math.rad(15) -- Ambang batas sudut 15 derajat
+    local angle_change = last_velocity.Magnitude > 0 and velocity.Magnitude > 0 and math.acos(velocity.Unit:Dot(last_velocity.Unit)) or 0
+    local is_curving = angle_change > angle_threshold
+
+    -- Periksa atribut bola untuk efek khusus
     if AutoParry.ball.ball_entity then
-        if AutoParry.ball.ball_entity:FindFirstChild('TimeHole1') and current_target ~= LocalPlayer.Name and ball_properties.distance < 100 then
-            ball_properties.auto_spam = false
-            return false
+        if ball_properties.distance < 50 and current_target ~= LocalPlayer.Name then
+            if ball_properties.ball_entity:FindFirstChild('MaxShield') then
+                return false
+            end
+            if ball_properties.ball_entity:FindFirstChild('TimeHole1') and ball_properties.distance < 100 then
+                ball_properties.auto_spam = false
+                return false
+            end
+            if ball_properties.ball_entity:FindFirstChild('WEMAZOOKIEGO') and ball_properties.distance < 100 then
+                return false
+            end
         end
 
-        if AutoParry.ball.ball_entity:FindFirstChild('WEMAZOOKIEGO') and current_target ~= LocalPlayer.Name and ball_properties.distance < 100 then
-            return false
-        end
-
-        if AutoParry.ball.ball_entity:FindFirstChild('At2') and ball_properties.speed <= 0 then
+        if ball_properties.ball_entity:FindFirstChild('At2') and speed <= 0 then
             return true
         end
 
-        if AutoParry.ball.ball_entity:FindFirstChild('AeroDynamicSlashVFX') then
-            Debris:AddItem(AutoParry.ball.ball_entity.AeroDynamicSlashVFX, 0)
+        if ball_properties.ball_entity:FindFirstChild('AeroDynamicSlashVFX') then
+            Debris:AddItem(ball_properties.ball_entity.AeroDynamicSlashVFX, 0)
             ball_properties.auto_spam = false
             ball_properties.aero_dynamic_time = tick()
+            is_curving = true
         end
     end
 
-    if RunTime:FindFirstChild('Tornado') then
-        if ball_properties.distance > 5 and (tick() - ball_properties.aero_dynamic_time) < (RunTime.Tornado:GetAttribute("TornadoTime") or 1) + 0.314159 then
-            return true
+    -- Efek lingkungan seperti Tornado
+    if RunTime:FindFirstChild('Tornado') and ball_properties.distance > 5 then
+        local tornado_time = RunTime.Tornado:GetAttribute("TornadoTime") or 1
+        if (tick() - ball_properties.aero_dynamic_time) < tornado_time + 0.3 then
+            is_curving = true
         end
     end
 
-    if not ball_properties.hell_hook_completed and target.Name == LocalPlayer.Name and ball_properties.distance > 5 - math.random() then
-        return true
-    end
-    
-    local ball_direction = ball_properties.velocity.Unit
-    local ball_speed = ball_properties.speed
-    
-    local speed_threshold = math.min(ball_speed / 100, 40)
-    local angle_threshold = 40 * math.max(ball_properties.dot, 0)
-
-    local player_ping = Player.Entity.properties.ping
-
-    local accurate_direction = ball_properties.velocity.Unit * ball_direction
-    local direction_difference = (accurate_direction - ball_properties.velocity).Unit
-    local accurate_dot = ball_properties.direction:Dot(direction_difference)
-    local dot_difference = ball_properties.dot - accurate_dot
-    local dot_threshold = 0.5 - player_ping / 1000
-
-    local reach_time = ball_properties.distance / ball_properties.maximum_speed - (player_ping / 1000)
-    local enough_speed = ball_properties.maximum_speed > 100
-
-    local ball_distance_threshold = 15 - math.min(ball_properties.distance / 1000, 15) + angle_threshold + speed_threshold
-    
-    if enough_speed and reach_time > player_ping / 10 then
-        ball_distance_threshold = math.max(ball_distance_threshold - 15, 15)
-    end
-    
-    if ball_properties.distance < ball_distance_threshold then
-        return false
+    -- Hell Hook
+    if not ball_properties.hell_hook_completed and current_target == LocalPlayer.Name and ball_properties.distance > 5 then
+        is_curving = true
     end
 
-    if dot_difference < dot_threshold or ball_properties.dot < dot_threshold then
-        return true
+    -- Penyesuaian berdasarkan ping
+    local distance_threshold = 10 + player_ping * 20 -- Jarak lebih besar untuk ping tinggi
+    if ball_properties.distance < distance_threshold then
+        is_curving = false
     end
 
-    if ball_properties.lerp_radians < 0.018 then
-        ball_properties.last_curve_position = ball_properties.position
-        ball_properties.last_warping = tick() 
+    -- Deteksi kecepatan rendah (indikasi curve)
+    if speed < 50 and ball_properties.distance > distance_threshold then
+        is_curving = true
     end
 
-    if (tick() - ball_properties.last_warping) < (reach_time / 1.5) then
-        return true
-    end
-
-    return false
+    return is_curving
 end
 
 function AutoParry.is_spam(params)
@@ -655,7 +673,6 @@ function AutoParry.is_spam(params)
     end
 
     local ball_properties = AutoParry.ball.properties
-    local entity_properties = AutoParry.entity_properties
     local speed = params.speed
     local spam_accuracy = params.spam_accuracy
     local parries = params.parries
@@ -671,82 +688,43 @@ function AutoParry.is_spam(params)
         old_from_target = AutoParry.target.from
     end
 
-    if parries < 3 and AutoParry.target.from == old_from_target then
+    -- Prioritaskan target lokal
+    if target.Name ~= LocalPlayer.Name then
         return false
     end
 
-    local player_ping = Player.Entity.properties.ping
-    local distance_threshold = 18 + (player_ping / 80)
-    local reach_time = ball_distance / maximum_speed - (player_ping / 1000)
+    local player_ping = Player.Entity.properties.ping / 1000
+    local distance_threshold = 15 + player_ping * 10 -- Dinamis berdasarkan ping
+    local time_since_last_hit = tick() - last_hit
 
-    if (tick() - last_hit) > 0.8 and entity_distance > distance_threshold and parries < 3 then
+    -- Cooldown mikro untuk spam
+    if time_since_last_hit < 0.1 + player_ping then
+        return false
+    end
+
+    -- Batas parry untuk mencegah spam berlebihan
+    if parries >= 3 then
         ball_properties.parries = 1
         return false
     end
 
-    if ball_properties.lerp_radians > 0.028 then
-        if parries > 3 then
-            ball_properties.parries = 1
-        end
+    -- Deteksi perubahan kecepatan kecil (indikasi spam)
+    if math.abs(speed - old_speed) < 10 and entity_distance > distance_threshold then
         return false
     end
 
-    if (tick() - ball_properties.last_warping) < (reach_time / 1.3) and entity_distance > distance_threshold and parries < 4 then
-        if parries > 3 then
-            ball_properties.parries = 1
-        end
+    -- Jarak terlalu jauh
+    if ball_distance > range or entity_distance > distance_threshold then
         return false
     end
 
-    if math.abs(speed - old_speed) < 5.2 and entity_distance > distance_threshold and speed < 60 and parries < 3 then
-        if parries > 3 then
-            ball_properties.parries = 0
-        end
+    -- Akurasi posisi terakhir
+    if last_position_distance > spam_accuracy then
         return false
     end
 
-    if speed < 10 then
-        ball_properties.parries = 1
-        return false
-    end
-
-    if maximum_speed < speed and entity_distance > distance_threshold then
-        ball_properties.parries = 1
-        return false
-    end
-
-    if entity_distance > range and entity_distance > distance_threshold then
-        if parries > 2 then
-            ball_properties.parries = 1
-        end
-        return false
-    end
-
-    if ball_distance > range and entity_distance > distance_threshold then
-        if parries > 2 then
-            ball_properties.parries = 2
-        end
-        return false
-    end
-
-    if last_position_distance > spam_accuracy and entity_distance > distance_threshold then
-        if parries > 4 then
-            ball_properties.parries = 2
-        end
-        return false
-    end
-
-    if ball_distance > spam_accuracy and ball_distance > distance_threshold then
-        if parries > 3 then
-            ball_properties.parries = 2
-        end
-        return false
-    end
-
-    if entity_distance > spam_accuracy and entity_distance > (distance_threshold - math.pi) then
-        if parries > 3 then
-            ball_properties.parries = 2
-        end
+    -- Kecepatan minimum untuk spam
+    if speed < 20 then
         return false
     end
 
@@ -811,7 +789,9 @@ task.defer(function()
         if not Settings.AntiIdleEnabled or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Humanoid") then
             return
         end
-        if tick() - lastAntiIdleTime >= 30 and Player.Entity.properties.speed < 1 then
+        if tick() - last
+
+AntiIdleTime >= 30 and Player.Entity.properties.speed < 1 then
             LocalPlayer.Character.Humanoid:MoveTo(LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(math.random(-5, 5), 0, math.random(-5, 5)))
             lastAntiIdleTime = tick()
         end
@@ -1045,6 +1025,7 @@ RunService.PreSimulation:Connect(function()
         AutoParry.entity_properties.dot = AutoParry.entity_properties.is_moving and math.max(AutoParry.entity_properties.direction:Dot(target_velocity.Unit), 0) or 0
     end
     closest_Entity = get_closest_entity()
+    ball_properties.last_velocity = ball_properties.velocity -- Simpan velocity untuk deteksi curve
 end)
 
 RunService.PreSimulation:Connect(function()
