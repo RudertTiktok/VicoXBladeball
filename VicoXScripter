@@ -502,7 +502,7 @@ function AutoParry.perform_parry()
         else
             Hash = Args
         end
-        Remote:FireServer(Hash, Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
+        Remote:FireServer(Hash, Key, unpack(Parry_Data))
     end
 
     if not ball_properties.auto_spam then
