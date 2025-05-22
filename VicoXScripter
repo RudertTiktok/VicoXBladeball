@@ -120,6 +120,8 @@ local Settings = {
     HitEffectParticles = 3,
     HitSound = "DC-15X"
 }
+local Parry_Key = nil
+local Remotes = {}
 
 -- Data Folder
 local nurysium_Data = Instance.new('Folder', game:GetService('CoreGui'))
@@ -127,7 +129,7 @@ nurysium_Data.Name = 'nurysium_temp'
 
 local hit_Sound = Instance.new('Sound', nurysium_Data)
 hit_Sound.SoundId = 'rbxassetid://936447863' -- Default to DC-15X
-hit_Sound.Volume = 3
+hit_Sound.Volume = 1
 
 -- Connections management
 local ConnectionsManager = {}
@@ -376,10 +378,6 @@ function AutoParry.perform_grab_animation()
     Player.Entity.properties.grab_animation:Play()
 end
 
--- Initialize Parry_Key and Remotes
-local Parry_Key = nil
-local Remotes = {}
-
 task.spawn(function()
     for _, Value in getgc() do
         if type(Value) == 'function' and islclosure(Value) then
@@ -522,7 +520,8 @@ function AutoParry.perform_parry()
     task.delay(0.5, function()
         if ball_properties.parries > 0 then
             ball_properties.parries -= 1
-        end)
+        end
+    end)
 
     Cooldown = tick()
 end
