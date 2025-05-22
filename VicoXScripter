@@ -125,45 +125,28 @@ local Settings = {
 -- Initialize Parry_Key and Remotes
 local Parry_Key = nil
 local Remotes = {}
-local foundFake = false
 
 task.spawn(function()
-    for _, Value in pairs(getgc()) do
+    for _, Value in getgc() do
         if type(Value) == 'function' and islclosure(Value) then
-            local Protos = debug.getprotos(Value) or {}
-            local Upvalues = debug.getupvalues(Value) or {}
-            local Constants = debug.getconstants(Value) or {}
+            local Protos = debug.getprotos(Value)
+            local Upvalues = debug.getupvalues(Value)
+            local Constants = debug.getconstants(Value)
             if #Protos == 4 and #Upvalues == 24 and #Constants >= 102 then
                 local c62 = Constants[62]
                 local c64 = Constants[64]
                 local c65 = Constants[65]
-                if c62 and c64 and c65 then
-                    Remotes[debug.getupvalue(Value, 16)] = c62
-                    Parry_Key = debug.getupvalue(Value, 17)
-                    Remotes[debug.getupvalue(Value, 18)] = c64
-                    Remotes[debug.getupvalue(Value, 19)] = c65
-                    print("Found target function. Parry_Key:", Parry_Key, "Remotes:", Remotes)
-                    break
-                else
-                    warn("Constants missing at required indices:", c62, c64, c65)
-                end
-            end
-        end
-    end
-    if not Parry_Key or not next(Remotes) then
-        warn("Failed to initialize Parry_Key or Remotes")
-    else
-        for _, Args in pairs(Remotes) do
-            if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
-                foundFake = true
-                print("Found fake hash:", Args)
+                Remotes[debug.getupvalue(Value, 16)] = c62
+                Parry_Key = debug.getupvalue(Value, 17)
+                Remotes[debug.getupvalue(Value, 18)] = c64
+                Remotes[debug.getupvalue(Value, 19)] = c65
                 break
             end
         end
     end
 end)
 
-local Key = Parry_key;
+local Key = Parry_Key;
 
 -- Data Folder
 local nurysium_Data = Instance.new('Folder', game:GetService('CoreGui'))
@@ -471,6 +454,14 @@ function AutoParry.parry_data()
     return {0, DirectionCF, Events, Used}
 end
 
+local foundFake = false
+for _, Args in pairs(Remotes) do
+    if Args == "PARRY_HASH_FAKE_1" or Args == "_G" then
+        foundFake = true
+        break
+    end
+end
+
 function AutoParry.perform_parry()
     local ball_properties = AutoParry.ball.properties
     
@@ -518,6 +509,10 @@ function AutoParry.perform_parry()
             Hash = Args
         end
         Remote:FireServer(Hash, Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
+    end
+
+    if Parries > 7 then
+        return false
     end
 
     if not ball_properties.auto_spam then
