@@ -92,7 +92,6 @@ local Alive = Workspace:FindFirstChild("Alive") or Workspace
 local Dead = Workspace:FindFirstChild("Dead") or Workspace
 local Camera = Workspace.CurrentCamera
 local Cooldown = tick()
-local SoundCooldown = tick()
 local is_respawned = false
 local lastAntiIdleTime = tick()
 local parryCount = 0
@@ -411,7 +410,10 @@ function AutoParry.parry_data()
     end
 
     local ViewportSize = Camera.ViewportSize
-    local MouseLocation = UserInputService:GetMouseLocation()
+    local MouseLocation = (Last_Input == Enum.UserInputType.MouseButton1 or Last_Input == Enum.UserInputType.MouseButton2 or Last_Input == Enum.UserInputType.Keyboard)
+		and UserInputService:GetMouseLocation()
+		or Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
+
     local Used = {MouseLocation.X, MouseLocation.Y}
 
     if Settings.CursorTargeting then
@@ -426,13 +428,11 @@ function AutoParry.parry_data()
         end
     end
 
-    local Alive = workspace:FindFirstChild("Alive") or workspace
-    local Events = {}
-    for _, v in ipairs(Alive:GetChildren()) do
-        if v:IsA("Model") and v.PrimaryPart then
-            Events[tostring(v)] = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
-        end
-    end
+    local Alive = workspace.Alive:GetChildren()
+	local Events = table.create(#Alive)
+	for _, v in ipairs(Alive) do
+			Events[tostring(v)] = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
+	end
 
     local pos = Camera.CFrame.Position
     local look = Camera.CFrame.LookVector
@@ -448,7 +448,7 @@ function AutoParry.parry_data()
         Random = Vector3.new(math.random(-3000, 3000), math.random(-3000, 3000), math.random(-3000, 3000))
     }
 
-    local lookTarget = directions[Settings.CurveMethod] or directions.Accelerated
+    local lookTarget = directions[Settings.CurveMethod] or (pos + look * 1000)
     local DirectionCF = CFrame.new(pos, lookTarget)
 
     return {0, DirectionCF, Events, Used}
@@ -519,7 +519,7 @@ function AutoParry.perform_parry()
     if Settings.HitEffectEnabled then
         AutoParry.play_hit_effect()
     end
-    if Settings.HitSoundEnabled and tick() - SoundCooldown > 0.1 then
+    if Settings.HitSoundEnabled and tick() then
         hit_Sound:Play()
         SoundCooldown = tick()
     end
@@ -529,9 +529,6 @@ function AutoParry.perform_parry()
             ball_properties.parries -= 1
         end
     end)
-
-    Cooldown = tick()
-end
 
 function AutoParry.play_hit_effect()
     if not Settings.HitEffectEnabled then return end
