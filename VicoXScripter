@@ -160,6 +160,8 @@ task.spawn(function()
     end
 end)
 
+local Key = Parry_key;
+
 -- Data Folder
 local nurysium_Data = Instance.new('Folder', game:GetService('CoreGui'))
 nurysium_Data.Name = 'nurysium_temp'
@@ -483,7 +485,7 @@ function AutoParry.perform_parry()
     notify.new({
         Title = "Parry Success",
         Description = "Parry Count: " .. parryCount,
-        Duration = 0.5,
+        Duration = 0.01,
         Icon = "rbxassetid://8997385628"
     })
 
@@ -504,21 +506,15 @@ function AutoParry.perform_parry()
         AutoParry.entity_properties.server_position = target_position
     end
 
-    local Parry_Data = AutoParry.parry_data()
-    if not Parry_Key or not next(Remotes) then
-        warn("Parry_Key or Remotes not initialized, using VirtualInputManager")
-        local viewportSize = Camera.ViewportSize
-        local centerX, centerY = viewportSize.X / 2, viewportSize.Y / 2
-        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
-        task.wait(0.01)
-        VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
-    else
-        for Remote, Args in pairs(Remotes) do
-            if Remote:IsA("RemoteEvent") then
-                local Hash = foundFake and nil or Args
-                Remote:FireServer(Hash, Parry_Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
-            end
+    local Parry_Data = AutoParry.Parry_Data()
+    for Remote, Args in pairs(Remotes) do
+        local Hash
+        if foundFake then
+            Hash = nil
+        else
+            Hash = Args
         end
+        Remote:FireServer(Hash, Key, Parry_Data[1], Parry_Data[2], Parry_Data[3], Parry_Data[4])
     end
 
     if not ball_properties.auto_spam then
